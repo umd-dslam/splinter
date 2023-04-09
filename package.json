@@ -36,7 +36,13 @@
           "name": "Write"
         }
       ]
-    }
+    },
+    "commands": [
+      {
+        "command": "item.show",
+        "title": "Show item"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
