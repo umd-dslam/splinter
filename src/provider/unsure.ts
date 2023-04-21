@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
-import { Entity } from "../model";
+import { Unsure } from "../model";
 
-export class SchemaProvider implements vscode.TreeDataProvider<Entity> {
-  constructor(private entities: Entity[]) {}
+export class UnsureProvider implements vscode.TreeDataProvider<Unsure> {
+  constructor(private unsure: Unsure[]) {}
 
-  getTreeItem(element: Entity): vscode.TreeItem {
+  getTreeItem(element: Unsure): vscode.TreeItem {
     var item = new vscode.TreeItem(
       element.name,
       vscode.TreeItemCollapsibleState.None
@@ -19,10 +19,10 @@ export class SchemaProvider implements vscode.TreeDataProvider<Entity> {
     return item;
   }
 
-  getChildren(element?: Entity): Thenable<Entity[]> {
+  getChildren(element?: Unsure): Thenable<Unsure[]> {
     if (element) {
       return Promise.resolve([]);
     }
-    return Promise.resolve(this.entities);
+    return Promise.resolve(this.unsure);
   }
 }

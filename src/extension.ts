@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { SchemaProvider } from "./provider/schema";
+import { RecognizedProvider } from "./provider/recognized";
+import { UnsureProvider } from "./provider/unsure";
 import { analyze as analyzeTypeORM } from "./analyzer/typeorm";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -9,13 +10,24 @@ export function activate(context: vscode.ExtensionContext) {
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "";
 
-  Promise.resolve(analyzeTypeORM(rootPath)).then((results) => {
-    context.subscriptions.push(
-      vscode.window.registerTreeDataProvider(
-        "schema",
-        new SchemaProvider(results)
-      )
-    );
+  Promise.resolve(analyzeTypeORM(rootPath)).then((result) => {
+    if (typeof result === "string") {
+      console.log(result);
+    } else {
+      context.subscriptions.push(
+        vscode.window.registerTreeDataProvider(
+          "recognized",
+          new RecognizedProvider(result.entities)
+        )
+      );
+
+      context.subscriptions.push(
+        vscode.window.registerTreeDataProvider(
+          "unsure",
+          new UnsureProvider(result.unsure)
+        )
+      );
+    }
   });
 
   vscode.commands.registerCommand("item.show", (loc: vscode.Location) => {
