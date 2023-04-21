@@ -4,7 +4,10 @@ import { Entity, Operation } from "../model";
 export class RecognizedProvider
   implements vscode.TreeDataProvider<Entity | Operation>
 {
-  constructor(private entities: Map<string, Entity>) {}
+  constructor(
+    private rootPath: string,
+    private entities: Map<string, Entity>
+  ) {}
 
   getTreeItem(element: Entity | Operation): vscode.TreeItem {
     var item = new vscode.TreeItem(
@@ -13,6 +16,8 @@ export class RecognizedProvider
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None
     );
+
+    item.description = element.loc.uri.path.replace(this.rootPath + "/", "");
 
     item.command = {
       command: "item.show",
