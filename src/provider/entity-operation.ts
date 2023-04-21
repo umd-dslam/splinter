@@ -9,20 +9,37 @@ export class EntityOperationProvider
     private entities: Map<string, Entity>
   ) {}
 
+  isEntity(element: Entity | Operation): element is Entity {
+    return (element as Entity).operations !== undefined;
+  }
+
   getTreeItem(element: Entity | Operation): vscode.TreeItem {
     var item = new vscode.TreeItem(
       element.name,
-      element instanceof Entity && element.operations.length > 0
+      this.isEntity(element) && element.operations.length > 0
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None
     );
 
-    item.description = element.loc.uri.path.replace(this.rootPath + "/", "");
+    item.description = element.selection.filePath.replace(
+      this.rootPath + "/",
+      ""
+    );
 
     item.command = {
       command: "item.show",
       title: "Show",
-      arguments: [element.loc],
+      arguments: [
+        new vscode.Location(
+          vscode.Uri.file(element.selection.filePath),
+          new vscode.Range(
+            element.selection.fromLine,
+            element.selection.fromColumn,
+            element.selection.toLine,
+            element.selection.toColumn
+          )
+        ),
+      ],
     };
 
     return item;
@@ -30,7 +47,7 @@ export class EntityOperationProvider
 
   getChildren(element?: Entity | Operation): Thenable<Entity[] | Operation[]> {
     if (element) {
-      if (element instanceof Entity) {
+      if (this.isEntity(element)) {
         return Promise.resolve(element.operations);
       }
       return Promise.resolve([]);

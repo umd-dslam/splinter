@@ -1,6 +1,6 @@
 import { ESLint } from "eslint";
 import * as path from "path";
-import { AnalyzeResult, Entity, Operation } from "../model";
+import { AnalyzeResult, Entity, Operation, Selection } from "../model";
 import { Location, Range, Uri } from "vscode";
 import {
   EntityMessage,
@@ -37,7 +37,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
   const lintResults = await eslint.lintFiles(path.join(rootPath, "/**/*.ts"));
 
   // Collect all messages from the typeorm-analyzer plugin.
-  const messages: [JsonMessage, Location][] = [];
+  const messages: [JsonMessage, Selection][] = [];
   for (const result of lintResults) {
     for (const message of result.messages) {
       if (!message.ruleId || !message.ruleId.startsWith("typeorm-analyzer")) {
@@ -45,31 +45,33 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
       }
 
       let parsed: JsonMessage = JSON.parse(message.message);
-      let location = new Location(
-        Uri.file(result.filePath),
-        new Range(
-          message.line - 1,
-          message.column - 1,
-          (message.endLine || message.line) - 1,
-          (message.endColumn || message.column) - 1
-        )
-      );
-      messages.push([parsed, location]);
+      let selection = {
+        filePath: result.filePath,
+        fromLine: message.line - 1,
+        fromColumn: message.column - 1,
+        toLine: (message.endLine || message.line) - 1,
+        toColumn: (message.endColumn || message.column) - 1,
+      };
+      messages.push([parsed, selection]);
     }
   }
 
   // Collect all entities.
   let entities: Map<string, Entity> = new Map();
-  for (const [msg, loc] of messages) {
+  for (const [msg, selection] of messages) {
     if (EntityMessage.validate(msg)) {
-      entities.set(msg.name, new Entity(loc, msg.name, []));
+      entities.set(msg.name, {
+        selection,
+        name: msg.name,
+        operations: [],
+      });
     }
   }
 
   // Collect all operations per entity. If an operation cannot be matched to an
   // entity, it is added to the unsure list.
   const unknowns: Map<string, Entity> = new Map();
-  for (const [msg, loc] of messages) {
+  for (const [msg, selection] of messages) {
     if (MethodMessage.validate(msg)) {
       let found = false;
       for (const calleeType of msg.callee) {
@@ -79,7 +81,10 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
           entityName === undefined ? entityName : entities.get(entityName);
 
         if (entity !== undefined) {
-          entity.operations.push(new Operation(loc, msg.name));
+          entity.operations.push({
+            selection,
+            name: msg.name,
+          });
           found = true;
           break;
         }
@@ -88,9 +93,16 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
       if (!found) {
         const callee = msg.callee[0];
         if (!unknowns.has(callee)) {
-          unknowns.set(callee, new Entity(loc, callee, []));
+          unknowns.set(callee, {
+            selection,
+            name: callee,
+            operations: [],
+          });
         }
-        unknowns.get(callee)!.operations.push(new Operation(loc, msg.name));
+        unknowns.get(callee)!.operations.push({
+          selection,
+          name: msg.name,
+        });
       }
     }
   }
