@@ -28,8 +28,8 @@
           "name": "Recognized"
         },
         {
-          "id": "unsure",
-          "name": "Unsure"
+          "id": "unknown",
+          "name": "Unknown"
         }
       ]
     },

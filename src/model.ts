@@ -12,13 +12,9 @@ export class Entity {
   ) {}
 }
 
-export class Unsure {
-  constructor(public loc: Location, public name: string) {}
-}
-
 export type AnalyzeResult =
   | {
       entities: Map<string, Entity>;
-      unsure: Unsure[];
+      unknowns: Map<string, Entity>;
     }
   | string;

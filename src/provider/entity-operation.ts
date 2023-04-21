@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { Entity, Operation } from "../model";
 
-export class RecognizedProvider
+export class EntityOperationProvider
   implements vscode.TreeDataProvider<Entity | Operation>
 {
   constructor(
@@ -35,6 +35,11 @@ export class RecognizedProvider
       }
       return Promise.resolve([]);
     }
-    return Promise.resolve(Array.from(this.entities.values()));
+
+    const sortedEntities = Array.from(this.entities.values()).sort((a, b) =>
+      a.name < b.name ? -1 : 1
+    );
+
+    return Promise.resolve(sortedEntities);
   }
 }

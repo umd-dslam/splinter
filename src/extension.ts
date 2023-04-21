@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import { RecognizedProvider } from "./provider/recognized";
-import { UnsureProvider } from "./provider/unsure";
+import { EntityOperationProvider } from "./provider/entity-operation";
 import { analyze as analyzeTypeORM } from "./analyzer/typeorm";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -17,14 +16,14 @@ export function activate(context: vscode.ExtensionContext) {
       context.subscriptions.push(
         vscode.window.registerTreeDataProvider(
           "recognized",
-          new RecognizedProvider(rootPath, result.entities)
+          new EntityOperationProvider(rootPath, result.entities)
         )
       );
 
       context.subscriptions.push(
         vscode.window.registerTreeDataProvider(
-          "unsure",
-          new UnsureProvider(rootPath, result.unsure)
+          "unknown",
+          new EntityOperationProvider(rootPath, result.unknowns)
         )
       );
     }

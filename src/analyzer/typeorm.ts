@@ -1,6 +1,6 @@
 import { ESLint } from "eslint";
 import * as path from "path";
-import { AnalyzeResult, Entity, Operation, Unsure } from "../model";
+import { AnalyzeResult, Entity, Operation } from "../model";
 import { Location, Range, Uri } from "vscode";
 import {
   EntityMessage,
@@ -68,7 +68,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
 
   // Collect all operations per entity. If an operation cannot be matched to an
   // entity, it is added to the unsure list.
-  const unsure = [];
+  const unknowns: Map<string, Entity> = new Map();
   for (const [msg, loc] of messages) {
     if (MethodMessage.validate(msg)) {
       let found = false;
@@ -86,13 +86,17 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
       }
 
       if (!found) {
-        unsure.push(new Unsure(loc, msg.callee[0] + "#" + msg.name));
+        const callee = msg.callee[0];
+        if (!unknowns.has(callee)) {
+          unknowns.set(callee, new Entity(loc, callee, []));
+        }
+        unknowns.get(callee)!.operations.push(new Operation(loc, msg.name));
       }
     }
   }
 
   return {
-    entities: entities,
-    unsure: unsure,
+    entities,
+    unknowns,
   };
 }
