@@ -1,7 +1,6 @@
 import { ESLint } from "eslint";
 import * as path from "path";
-import { AnalyzeResult, Entity, Operation, Selection } from "../model";
-import { Location, Range, Uri } from "vscode";
+import { AnalyzeResult, Entity, Selection } from "../model";
 import {
   EntityMessage,
   JsonMessage,

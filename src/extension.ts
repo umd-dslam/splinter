@@ -8,31 +8,6 @@ import {
 } from "./model";
 import path = require("path");
 
-function registerTreeDataProviderFromResult(
-  context: vscode.ExtensionContext,
-  rootPath: string,
-  result: AnalyzeResult
-) {
-  if (typeof result === "string") {
-    console.error(result);
-    return;
-  }
-
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(
-      "recognized",
-      new EntityOperationProvider(rootPath, result.entities)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(
-      "unknown",
-      new EntityOperationProvider(rootPath, result.unknowns)
-    )
-  );
-}
-
 async function loadResultFromStorage(rootPath: string) {
   const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
   const resultPath = vscode.Uri.joinPath(
@@ -67,22 +42,40 @@ export function activate(context: vscode.ExtensionContext) {
     "typeorm-analyze-result.json"
   );
 
-  (async () => {
+  let promisedResult = (async () => {
     let result = await loadResultFromStorage(rootPath);
     if (result === undefined) {
       result = await analyzeTypeORM(rootPath);
 
-      console.log("Writing to file: ", resultPath);
+      console.log("Writing result to file: ", resultPath.path);
       await vscode.workspace.fs.createDirectory(vscodePath);
       await vscode.workspace.fs.writeFile(
         resultPath,
         Buffer.from(serializeAnalyzeResult(result))
       );
     }
-    if (result !== undefined) {
-      registerTreeDataProviderFromResult(context, rootPath, result);
-    }
+    return result;
   })();
+
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "recognized",
+      new EntityOperationProvider(
+        rootPath,
+        promisedResult.then((result) => result.entities)
+      )
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "unknown",
+      new EntityOperationProvider(
+        rootPath,
+        promisedResult.then((result) => result.unknowns)
+      )
+    )
+  );
 
   vscode.commands.registerCommand("item.show", (loc: vscode.Location) => {
     vscode.workspace.openTextDocument(loc.uri).then((doc) => {

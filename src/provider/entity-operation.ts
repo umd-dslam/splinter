@@ -6,7 +6,7 @@ export class EntityOperationProvider
 {
   constructor(
     private rootPath: string,
-    private entities: Map<string, Entity>
+    private entities: Thenable<Map<string, Entity>>
   ) {}
 
   isEntity(element: Entity | Operation): element is Entity {
@@ -53,10 +53,10 @@ export class EntityOperationProvider
       return Promise.resolve([]);
     }
 
-    const sortedEntities = Array.from(this.entities.values()).sort((a, b) =>
-      a.name < b.name ? -1 : 1
-    );
-
-    return Promise.resolve(sortedEntities);
+    return this.entities.then((entities) => {
+      return Array.from(entities.values()).sort((a, b) =>
+        a.name < b.name ? -1 : 1
+      );
+    });
   }
 }

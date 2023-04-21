@@ -19,12 +19,10 @@ export type Entity = {
   operations: Operation[];
 };
 
-export type AnalyzeResult =
-  | {
-      entities: Map<string, Entity>;
-      unknowns: Map<string, Entity>;
-    }
-  | string;
+export type AnalyzeResult = {
+  entities: Map<string, Entity>;
+  unknowns: Map<string, Entity>;
+};
 
 function replacer(key: string, value: any) {
   if (value instanceof Map) {
