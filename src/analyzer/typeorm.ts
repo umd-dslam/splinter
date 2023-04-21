@@ -47,7 +47,12 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
       let parsed: JsonMessage = JSON.parse(message.message);
       let location = new Location(
         Uri.file(result.filePath),
-        new Range(message.line, 0, message.line, 0)
+        new Range(
+          message.line - 1,
+          message.column - 1,
+          (message.endLine || message.line) - 1,
+          (message.endColumn || message.column) - 1
+        )
       );
       messages.push([parsed, location]);
     }
@@ -81,7 +86,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
       }
 
       if (!found) {
-        unsure.push(new Unsure(loc, msg.callee[1] + "." + msg.name));
+        unsure.push(new Unsure(loc, msg.callee[0] + "#" + msg.name));
       }
     }
   }

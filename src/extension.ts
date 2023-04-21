@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand("item.show", (loc: vscode.Location) => {
     vscode.workspace.openTextDocument(loc.uri).then((doc) => {
       vscode.window.showTextDocument(doc).then((editor) => {
-        editor.revealRange(loc.range, vscode.TextEditorRevealType.InCenter);
+        editor.selection = new vscode.Selection(loc.range.start, loc.range.end);
       });
     });
   });
