@@ -25,6 +25,7 @@ export class EntityOperationProvider
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None;
       item.description = Object.entries(countOperationTypes(element.operations))
+        .sort((a, b) => (a[0] < b[0] ? -1 : 1))
         .map(([type, count]) => `${type}: ${count}`)
         .join(" | ");
     } else {
@@ -60,9 +61,7 @@ export class EntityOperationProvider
   ): Promise<Entity[] | Operation[]> {
     if (element) {
       if (this.isEntity(element)) {
-        return element.operations.sort((a, b) =>
-          a.selection.filePath < b.selection.filePath ? -1 : 1
-        );
+        return element.operations.sort((a, b) => (a.type < b.type ? -1 : 1));
       }
       return [];
     }
