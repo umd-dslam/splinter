@@ -24,6 +24,10 @@
     "views": {
       "clue": [
         {
+          "id": "statistics",
+          "name": "Statistics"
+        },
+        {
           "id": "recognized",
           "name": "Recognized"
         },

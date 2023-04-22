@@ -7,6 +7,7 @@ import {
   serializeAnalyzeResult,
 } from "./model";
 import path = require("path");
+import { StatisticsProvider } from "./provider/statistics";
 
 async function loadResultFromStorage(rootPath: string) {
   const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
@@ -32,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const rootPath =
     vscode.workspace.workspaceFolders &&
-    vscode.workspace.workspaceFolders.length > 0
+      vscode.workspace.workspaceFolders.length > 0
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "";
 
@@ -56,6 +57,16 @@ export function activate(context: vscode.ExtensionContext) {
     }
     return result;
   })();
+
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "statistics",
+      new StatisticsProvider(
+        rootPath,
+        promisedResult
+      )
+    )
+  );
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider(
@@ -87,4 +98,4 @@ export function activate(context: vscode.ExtensionContext) {
   });
 }
 
-export function deactivate() {}
+export function deactivate() { }

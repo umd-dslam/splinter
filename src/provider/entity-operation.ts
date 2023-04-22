@@ -45,18 +45,18 @@ export class EntityOperationProvider
     return item;
   }
 
-  getChildren(element?: Entity | Operation): Thenable<Entity[] | Operation[]> {
+  async getChildren(
+    element?: Entity | Operation
+  ): Promise<Entity[] | Operation[]> {
     if (element) {
       if (this.isEntity(element)) {
-        return Promise.resolve(element.operations);
+        return element.operations;
       }
-      return Promise.resolve([]);
+      return [];
     }
-
-    return this.entities.then((entities) => {
-      return Array.from(entities.values()).sort((a, b) =>
-        a.name < b.name ? -1 : 1
-      );
-    });
+    const entities = await this.entities;
+    return Array.from(entities.values()).sort((a, b) =>
+      a.name < b.name ? -1 : 1
+    );
   }
 }

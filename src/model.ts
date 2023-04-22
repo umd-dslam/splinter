@@ -11,6 +11,7 @@ export type Selection = {
 export type Operation = {
   selection: Selection;
   name: string;
+  type: 'read' | 'write' | 'other'
 };
 
 export type Entity = {
