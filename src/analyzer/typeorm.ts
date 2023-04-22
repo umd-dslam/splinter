@@ -23,7 +23,7 @@ function getESLint(rootPath: string) {
       /* eslint-disable @typescript-eslint/naming-convention */
       rules: {
         "typeorm-analyzer/find-schema": "warn",
-        "typeorm-analyzer/find-repository-api": "warn",
+        "typeorm-analyzer/find-api": "warn",
       },
     },
   });
@@ -66,6 +66,24 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
       });
     }
   }
+  // Special entity for the Entity Manager API (https://typeorm.io/entity-manager-api)
+  entities.set("[EntityManager]", {
+    selection: undefined,
+    name: "[EntityManager]",
+    operations: [],
+  });
+  // Special entity for the QueryRunner
+  entities.set("[QueryRunner]", {
+    selection: undefined,
+    name: "[QueryRunner]",
+    operations: [],
+  });
+  // Special entity for the Connection
+  entities.set("[Connection]", {
+    selection: undefined,
+    name: "[Connection]",
+    operations: [],
+  });
 
   // Collect all operations per entity. If an operation cannot be matched to an
   // entity, it is added to the unsure list.
@@ -81,6 +99,25 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
       // Find a recognized entity
       let found = false;
       for (const calleeType of msg.callee) {
+        // Special case for the Entity Manager API
+        if (calleeType === "EntityManager") {
+          entities.get("[EntityManager]")!.operations.push(operation);
+          found = true;
+          break;
+        }
+        // Special entity for the QueryRunner
+        if (calleeType === "QueryRunner") {
+          entities.get("[QueryRunner]")!.operations.push(operation);
+          found = true;
+          break;
+        }
+        // Special entity for the Connection
+        if (calleeType === "Connection") {
+          entities.get("[Connection]")!.operations.push(operation);
+          found = true;
+          break;
+        }
+
         // Parse the entity name in the pattern "Repository<EntityName>"
         let entityName = calleeType.match(/Repository<(.*)>/)?.[1];
         let entity =

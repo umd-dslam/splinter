@@ -15,7 +15,9 @@ export class EntityOperationProvider
   }
 
   getTreeItem(element: Entity | Operation): vscode.TreeItem {
-    let relativePath = path.relative(this.rootPath, element.selection.filePath);
+    let relativePath = element.selection
+      ? path.relative(this.rootPath, element.selection.filePath)
+      : "";
     let item = new vscode.TreeItem(element.name);
     if (this.isEntity(element)) {
       item.collapsibleState =
@@ -32,21 +34,23 @@ export class EntityOperationProvider
 
     item.tooltip = relativePath;
 
-    item.command = {
-      command: "item.show",
-      title: "Show",
-      arguments: [
-        new vscode.Location(
-          vscode.Uri.file(element.selection.filePath),
-          new vscode.Range(
-            element.selection.fromLine,
-            element.selection.fromColumn,
-            element.selection.toLine,
-            element.selection.toColumn
-          )
-        ),
-      ],
-    };
+    if (element.selection) {
+      item.command = {
+        command: "item.show",
+        title: "Show",
+        arguments: [
+          new vscode.Location(
+            vscode.Uri.file(element.selection.filePath),
+            new vscode.Range(
+              element.selection.fromLine,
+              element.selection.fromColumn,
+              element.selection.toLine,
+              element.selection.toColumn
+            )
+          ),
+        ],
+      };
+    }
 
     return item;
   }

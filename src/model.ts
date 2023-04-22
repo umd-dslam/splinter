@@ -15,7 +15,7 @@ export type Operation = {
 };
 
 export type Entity = {
-  selection: Selection;
+  selection?: Selection;
   name: string;
   operations: Operation[];
 };
