@@ -37,10 +37,23 @@
         }
       ]
     },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "item.addNote",
+          "when": "view == recognized || view == unknown",
+          "group": "inline"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "item.show",
-        "title": "Show item"
+        "title": "Show Item"
+      },
+      {
+        "command": "item.addNote",
+        "title": "Add Note"
       }
     ]
   },

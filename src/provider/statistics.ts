@@ -30,6 +30,7 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
 
     const result = await this.result;
 
+    // Accumulate the count per operation type across all entities.
     let operationTypeCounts = {} as { [key: string]: number };
     for (const entity of result.entities.values()) {
       operationTypeCounts = countOperationTypes(

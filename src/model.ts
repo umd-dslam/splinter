@@ -12,12 +12,14 @@ export type Operation = {
   selection: Selection;
   name: string;
   type: "read" | "write" | "other" | "transaction";
+  note: string;
 };
 
 export type Entity = {
   selection?: Selection;
   name: string;
   operations: Operation[];
+  note: string;
 };
 
 export type AnalyzeResult = {

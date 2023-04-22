@@ -32,6 +32,12 @@ export class EntityOperationProvider
       item.collapsibleState = vscode.TreeItemCollapsibleState.None;
       item.description = element.type;
     }
+    if (element.note) {
+      if (item.description) {
+        item.description += " | ";
+      }
+      item.description += `note: ${element.note}`;
+    }
 
     item.tooltip = relativePath;
 
@@ -69,5 +75,15 @@ export class EntityOperationProvider
     return Array.from(entities.values()).sort((a, b) =>
       a.name < b.name ? -1 : 1
     );
+  }
+
+  private _onDidChangeTreeData: vscode.EventEmitter<
+    Entity | undefined | null | void
+  > = new vscode.EventEmitter<Entity | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<Entity | undefined | null | void> =
+    this._onDidChangeTreeData.event;
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
   }
 }

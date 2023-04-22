@@ -1,6 +1,13 @@
+import * as vscode from "vscode";
 import { ESLint } from "eslint";
 import * as path from "path";
-import { AnalyzeResult, Entity, Selection } from "../model";
+import {
+  AnalyzeResult,
+  Entity,
+  Selection,
+  deserializeAnalyzeResult,
+  serializeAnalyzeResult,
+} from "../model";
 import {
   EntityMessage,
   JsonMessage,
@@ -63,6 +70,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
         selection,
         name: msg.name,
         operations: [],
+        note: "",
       });
     }
   }
@@ -71,18 +79,21 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
     selection: undefined,
     name: "[EntityManager]",
     operations: [],
+    note: "",
   });
   // Special entity for the QueryRunner
   entities.set("[QueryRunner]", {
     selection: undefined,
     name: "[QueryRunner]",
     operations: [],
+    note: "",
   });
   // Special entity for the Connection
   entities.set("[Connection]", {
     selection: undefined,
     name: "[Connection]",
     operations: [],
+    note: "",
   });
 
   // Collect all operations per entity. If an operation cannot be matched to an
@@ -94,6 +105,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
         selection,
         name: msg.name,
         type: msg.methodType,
+        note: "",
       };
 
       // Find a recognized entity
@@ -138,6 +150,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
             selection,
             name: callee,
             operations: [],
+            note: "",
           });
         }
         unknowns.get(callee)!.operations.push(operation);
@@ -149,4 +162,34 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
     entities,
     unknowns,
   };
+}
+
+const SAVE_FILE_NAME = "typeorm-analyze-result.json";
+
+export async function loadResultFromStorage(rootPath: string) {
+  const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
+  const resultPath = vscode.Uri.joinPath(vscodePath, SAVE_FILE_NAME);
+
+  return vscode.workspace.fs.readFile(resultPath).then(
+    (data) => {
+      return deserializeAnalyzeResult(data.toString());
+    },
+    (err) => {
+      console.log("No result file found: ", resultPath.path);
+    }
+  );
+}
+
+export async function saveResultToStorage(
+  rootPath: string,
+  result: AnalyzeResult
+) {
+  const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
+  const resultPath = vscode.Uri.joinPath(vscodePath, SAVE_FILE_NAME);
+
+  await vscode.workspace.fs.createDirectory(vscodePath);
+  await vscode.workspace.fs.writeFile(
+    resultPath,
+    Buffer.from(serializeAnalyzeResult(result))
+  );
 }
