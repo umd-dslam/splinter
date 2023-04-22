@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { Entity, Operation } from "../model";
+import { Entity, Operation, countOperationTypes } from "../model";
+import * as path from "path";
 
 export class EntityOperationProvider
   implements vscode.TreeDataProvider<Entity | Operation>
@@ -14,17 +15,22 @@ export class EntityOperationProvider
   }
 
   getTreeItem(element: Entity | Operation): vscode.TreeItem {
-    var item = new vscode.TreeItem(
-      element.name,
-      this.isEntity(element) && element.operations.length > 0
-        ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None
-    );
+    let relativePath = path.relative(this.rootPath, element.selection.filePath);
+    let item = new vscode.TreeItem(element.name);
+    if (this.isEntity(element)) {
+      item.collapsibleState =
+        element.operations.length > 0
+          ? vscode.TreeItemCollapsibleState.Collapsed
+          : vscode.TreeItemCollapsibleState.None;
+      item.description = Object.entries(countOperationTypes(element.operations))
+        .map(([type, count]) => `${type}: ${count}`)
+        .join(" | ");
+    } else {
+      item.collapsibleState = vscode.TreeItemCollapsibleState.None;
+      item.description = element.type;
+    }
 
-    item.description = element.selection.filePath.replace(
-      this.rootPath + "/",
-      ""
-    );
+    item.tooltip = relativePath;
 
     item.command = {
       command: "item.show",
@@ -50,7 +56,9 @@ export class EntityOperationProvider
   ): Promise<Entity[] | Operation[]> {
     if (element) {
       if (this.isEntity(element)) {
-        return element.operations;
+        return element.operations.sort((a, b) =>
+          a.selection.filePath < b.selection.filePath ? -1 : 1
+        );
       }
       return [];
     }

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { AnalyzeResult } from "../model";
+import { AnalyzeResult, countOperationTypes } from "../model";
 
 type Statistics = {
   name: string;
@@ -30,39 +30,25 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
 
     const result = await this.result;
 
-    let entityReads = 0;
-    let entityWrites = 0;
+    let operationTypeCounts = {} as { [key: string]: number };
     for (const entity of result.entities.values()) {
-      for (const operation of entity.operations) {
-        switch (operation.type) {
-          case "read":
-            entityReads++;
-            break;
-          case "write":
-            entityWrites++;
-            break;
-          case "other":
-            break;
-        }
-      }
+      operationTypeCounts = countOperationTypes(
+        entity.operations,
+        operationTypeCounts
+      );
     }
 
     return [
       {
         name: "entities",
         value: result.entities.size,
-        children: [
-          {
-            name: "reads",
-            value: entityReads,
+        children: Object.entries(operationTypeCounts).map(([type, count]) => {
+          return {
+            name: type,
+            value: count,
             children: [],
-          },
-          {
-            name: "writes",
-            value: entityWrites,
-            children: [],
-          },
-        ],
+          };
+        }),
       },
     ];
   }

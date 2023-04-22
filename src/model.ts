@@ -11,7 +11,7 @@ export type Selection = {
 export type Operation = {
   selection: Selection;
   name: string;
-  type: 'read' | 'write' | 'other'
+  type: "read" | "write" | "other";
 };
 
 export type Entity = {
@@ -57,4 +57,18 @@ export function deserializeAnalyzeResult(
   } catch (e) {
     return undefined;
   }
+}
+
+export function countOperationTypes(
+  operations: Operation[],
+  start?: { [key: string]: number }
+): { [key: string]: number } {
+  if (start === undefined) {
+    start = {};
+  }
+
+  return operations.reduce((acc, operation) => {
+    acc[operation.type] = acc[operation.type] ? acc[operation.type] + 1 : 1;
+    return acc;
+  }, start);
 }
