@@ -72,6 +72,12 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
   const unknowns: Map<string, Entity> = new Map();
   for (const [msg, selection] of messages) {
     if (MethodMessage.validate(msg)) {
+      const operation = {
+        selection,
+        name: msg.name,
+        type: msg.methodType,
+      };
+
       // Find a recognized entity
       let found = false;
       for (const calleeType of msg.callee) {
@@ -81,10 +87,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
           entityName === undefined ? entityName : entities.get(entityName);
 
         if (entity !== undefined) {
-          entity.operations.push({
-            selection,
-            name: msg.name,
-          });
+          entity.operations.push(operation);
           found = true;
           break;
         }
@@ -100,11 +103,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
             operations: [],
           });
         }
-        unknowns.get(callee)!.operations.push({
-          selection,
-          name: msg.name,
-          type: msg.methodType,
-        });
+        unknowns.get(callee)!.operations.push(operation);
       }
     }
   }

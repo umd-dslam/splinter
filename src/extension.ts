@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const rootPath =
     vscode.workspace.workspaceFolders &&
-      vscode.workspace.workspaceFolders.length > 0
+    vscode.workspace.workspaceFolders.length > 0
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "";
 
@@ -61,10 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider(
       "statistics",
-      new StatisticsProvider(
-        rootPath,
-        promisedResult
-      )
+      new StatisticsProvider(promisedResult)
     )
   );
 
@@ -98,4 +95,4 @@ export function activate(context: vscode.ExtensionContext) {
   });
 }
 
-export function deactivate() { }
+export function deactivate() {}
