@@ -39,7 +39,7 @@ export class EntityOperationProvider
       item.description += `note: ${element.note}`;
     }
 
-    item.tooltip = relativePath;
+    item.tooltip = `${relativePath}\nnote: ${element.note}`;
 
     if (element.selection) {
       item.command = {
@@ -78,12 +78,13 @@ export class EntityOperationProvider
   }
 
   private _onDidChangeTreeData: vscode.EventEmitter<
-    Entity | undefined | null | void
+    Entity | Operation | undefined | null | void
   > = new vscode.EventEmitter<Entity | undefined | null | void>();
-  readonly onDidChangeTreeData: vscode.Event<Entity | undefined | null | void> =
-    this._onDidChangeTreeData.event;
+  readonly onDidChangeTreeData: vscode.Event<
+    Entity | Operation | undefined | null | void
+  > = this._onDidChangeTreeData.event;
 
-  refresh(): void {
-    this._onDidChangeTreeData.fire();
+  updateEntity(entity: Entity | Operation): void {
+    this._onDidChangeTreeData.fire(entity);
   }
 }

@@ -5,7 +5,7 @@ import {
   loadResultFromStorage,
   saveResultToStorage,
 } from "./analyzer/typeorm";
-import { Entity } from "./model";
+import { Entity, Operation } from "./model";
 import path = require("path");
 import { StatisticsProvider } from "./provider/statistics";
 
@@ -61,18 +61,21 @@ export function activate(context: vscode.ExtensionContext) {
     });
   });
 
-  vscode.commands.registerCommand("item.addNote", (entity: Entity) => {
-    vscode.window.showInputBox({ value: entity.note }).then((note) => {
-      if (note !== undefined) {
-        entity.note = note;
-        promisedResult.then((result) => {
-          saveResultToStorage(rootPath, result);
-        });
-      }
-      recognizedProvider.refresh();
-      unknownProvider.refresh();
-    });
-  });
+  vscode.commands.registerCommand(
+    "item.addNote",
+    (item: Entity | Operation) => {
+      vscode.window.showInputBox({ value: item.note }).then((note) => {
+        if (note !== undefined) {
+          item.note = note;
+          promisedResult.then((result) => {
+            saveResultToStorage(rootPath, result);
+          });
+        }
+        recognizedProvider.updateEntity(item);
+        unknownProvider.updateEntity(item);
+      });
+    }
+  );
 }
 
 export function deactivate() {}
