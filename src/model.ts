@@ -26,9 +26,9 @@ export class AnalyzeResult {
   private entities: Map<string, Entity>;
   private unknowns: Map<string, Entity>;
 
-  constructor(entities?: Map<string, Entity>, unknowns?: Map<string, Entity>) {
-    this.entities = entities || new Map();
-    this.unknowns = unknowns || new Map();
+  constructor() {
+    this.entities = new Map();
+    this.unknowns = new Map();
   }
 
   getEntities(): Map<string, Entity> {

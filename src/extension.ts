@@ -1,13 +1,10 @@
 import * as vscode from "vscode";
 import { EntityOperationProvider } from "./provider/entity-operation";
-import {
-  analyze as analyzeTypeORM,
-  loadResultFromStorage,
-  saveResultToStorage,
-} from "./analyzer/typeorm";
+import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { AnalyzeResult, Entity, Operation } from "./model";
-import path = require("path");
 import { StatisticsProvider } from "./provider/statistics";
+
+const ANALYZE_BATCH = 1;
 
 let analyzeResult: AnalyzeResult = new AnalyzeResult();
 
@@ -26,30 +23,57 @@ export function activate(context: vscode.ExtensionContext) {
     rootPath,
     analyzeResult.getEntities()
   );
-
   const unknownProvider = new EntityOperationProvider(
     rootPath,
     analyzeResult.getUnknowns()
   );
-
   const statisticsProvider = new StatisticsProvider(analyzeResult);
+
+  const analyzer = new TypeORMAnalyzer(rootPath);
 
   vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
       cancellable: false,
-      title: "Analyzing TypeORM",
+      title: "TypeORM",
     },
     async (progress) => {
-      let result = await loadResultFromStorage(rootPath);
-      if (result === undefined) {
-        result = await analyzeTypeORM(rootPath);
-        await saveResultToStorage(rootPath, result);
+      // Try to load the result of a previous run from file
+      let result = await analyzer.loadResultFromStorage(rootPath);
+      if (result !== undefined) {
+        analyzeResult.extend(result);
+      } else {
+        // If the result is not found, start a new analysis
+        const files = await vscode.workspace.findFiles(
+          "**/*.ts",
+          "**/node_modules/**"
+        );
+
+        for (let i = 0; i < files.length; i += ANALYZE_BATCH) {
+          let messageFiles = files
+            .slice(i, i + Math.min(5, ANALYZE_BATCH))
+            .map((uri) => uri.fsPath)
+            .join("\n");
+
+          progress.report({
+            increment: (ANALYZE_BATCH / files.length) * 100,
+            message: `Analyzing ${files.length} files\n${messageFiles}`,
+          });
+          await analyzer.analyze(
+            files.slice(i, i + ANALYZE_BATCH),
+            analyzeResult
+          );
+
+          recognizedProvider.refresh();
+          unknownProvider.refresh();
+          statisticsProvider.refresh();
+        }
+
+        await analyzer.finalize(analyzeResult);
+
+        // Save the result to file for future use
+        await analyzer.saveResultToStorage(rootPath, analyzeResult);
       }
-
-      progress.report({ increment: 100, message: "Done" });
-
-      analyzeResult.extend(result);
 
       recognizedProvider.refresh();
       unknownProvider.refresh();
@@ -84,7 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInputBox({ value: item.note }).then((note) => {
         if (note !== undefined) {
           item.note = note;
-          saveResultToStorage(rootPath, analyzeResult);
+          analyzer.saveResultToStorage(rootPath, analyzeResult);
         }
         recognizedProvider.updateItem(item);
         unknownProvider.updateItem(item);
