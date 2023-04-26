@@ -7,7 +7,7 @@ export class EntityOperationProvider
 {
   constructor(
     private rootPath: string,
-    private entities: Thenable<Map<string, Entity>>
+    private entities: Map<string, Entity>
   ) {}
 
   isEntity(element: Entity | Operation): element is Entity {
@@ -71,8 +71,8 @@ export class EntityOperationProvider
       }
       return [];
     }
-    const entities = await this.entities;
-    return Array.from(entities.values()).sort((a, b) =>
+
+    return Array.from(this.entities.values()).sort((a, b) =>
       a.name < b.name ? -1 : 1
     );
   }
@@ -84,7 +84,11 @@ export class EntityOperationProvider
     Entity | Operation | undefined | null | void
   > = this._onDidChangeTreeData.event;
 
-  updateEntity(entity: Entity | Operation): void {
+  updateItem(entity: Entity | Operation): void {
     this._onDidChangeTreeData.fire(entity);
+  }
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire(null);
   }
 }

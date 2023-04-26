@@ -8,7 +8,7 @@ type Statistics = {
 };
 
 export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
-  constructor(private result: Thenable<AnalyzeResult>) {}
+  constructor(private result: AnalyzeResult) {}
 
   getTreeItem(element: Statistics): vscode.TreeItem {
     var item = new vscode.TreeItem(
@@ -28,11 +28,9 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
       return element.children;
     }
 
-    const result = await this.result;
-
     // Accumulate the count per operation type across all entities.
     let operationTypeCounts = {} as { [key: string]: number };
-    for (const entity of result.entities.values()) {
+    for (const entity of this.result.getEntities().values()) {
       operationTypeCounts = countOperationTypes(
         entity.operations,
         operationTypeCounts
@@ -42,7 +40,7 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
     return [
       {
         name: "entities",
-        value: result.entities.size,
+        value: this.result.getEntities().size,
         children: Object.entries(operationTypeCounts).map(([type, count]) => {
           return {
             name: type,
@@ -52,5 +50,14 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
         }),
       },
     ];
+  }
+
+  private _onDidChangeTreeData: vscode.EventEmitter<void> =
+    new vscode.EventEmitter<void>();
+  readonly onDidChangeTreeData: vscode.Event<void> =
+    this._onDidChangeTreeData.event;
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
   }
 }

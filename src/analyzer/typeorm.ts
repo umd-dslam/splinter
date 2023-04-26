@@ -158,10 +158,7 @@ export async function analyze(rootPath: string): Promise<AnalyzeResult> {
     }
   }
 
-  return {
-    entities,
-    unknowns,
-  };
+  return new AnalyzeResult(entities, unknowns);
 }
 
 const SAVE_FILE_NAME = "typeorm-analyze-result.json";

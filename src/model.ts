@@ -22,10 +22,33 @@ export type Entity = {
   note: string;
 };
 
-export type AnalyzeResult = {
-  entities: Map<string, Entity>;
-  unknowns: Map<string, Entity>;
-};
+export class AnalyzeResult {
+  private entities: Map<string, Entity>;
+  private unknowns: Map<string, Entity>;
+
+  constructor(entities?: Map<string, Entity>, unknowns?: Map<string, Entity>) {
+    this.entities = entities || new Map();
+    this.unknowns = unknowns || new Map();
+  }
+
+  getEntities(): Map<string, Entity> {
+    return this.entities;
+  }
+
+  getUnknowns(): Map<string, Entity> {
+    return this.unknowns;
+  }
+
+  extend(result: AnalyzeResult) {
+    for (const item of result.entities) {
+      this.entities.set(...item);
+    }
+
+    for (const item of result.unknowns) {
+      this.unknowns.set(...item);
+    }
+  }
+}
 
 function replacer(key: string, value: any) {
   if (value instanceof Map) {
