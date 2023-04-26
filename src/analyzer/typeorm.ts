@@ -35,7 +35,7 @@ export class TypeORMAnalyzer implements Analyzer {
         /* eslint-disable @typescript-eslint/naming-convention */
         rules: {
           "typeorm-analyzer/find-schema": "warn",
-          // "typeorm-analyzer/find-api": "warn",
+          "typeorm-analyzer/find-api": "warn",
         },
       },
     });
