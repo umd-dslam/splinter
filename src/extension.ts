@@ -55,6 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "";
 
+  const config = vscode.workspace.getConfiguration("clue");
+
   const recognizedProvider = new EntityOperationProvider(
     rootPath,
     analyzeResult.getEntities()
@@ -86,8 +88,8 @@ export function activate(context: vscode.ExtensionContext) {
       } else {
         // If the result is not found, start a new analysis
         const files = await vscode.workspace.findFiles(
-          "**/*.ts",
-          "**/node_modules/**"
+          config.get("clue.includeFiles")!.toString(),
+          config.get("clue.excludeFiles")!.toString()
         );
 
         for (let i = 0; i < files.length; i += ANALYZE_BATCH) {

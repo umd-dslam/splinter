@@ -12,6 +12,21 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Clue",
+      "properties": {
+        "clue.includeFiles": {
+          "type": "string",
+          "default": "**/*.js",
+          "definitions": "Glob pattern of files to include in the analysis"
+        },
+        "clue.excludeFiles": {
+          "type": "string",
+          "default": "**/node_modules/**",
+          "definitions": "Glob pattern of files to exclude from the analysis"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
