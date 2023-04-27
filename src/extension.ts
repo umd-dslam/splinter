@@ -153,6 +153,8 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const analyzer = new TypeORMAnalyzer(rootPath);
+
+  // Run the initial analysis
   runAnalyzer(analyzer, rootPath, [
     recognizedProvider,
     unknownProvider,
