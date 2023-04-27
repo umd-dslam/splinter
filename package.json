@@ -17,7 +17,7 @@
       "properties": {
         "clue.includeFiles": {
           "type": "string",
-          "default": "**/*.js",
+          "default": "**/*.ts",
           "definitions": "Glob pattern of files to include in the analysis"
         },
         "clue.excludeFiles": {
@@ -55,7 +55,7 @@
     "menus": {
       "view/item/context": [
         {
-          "command": "item.addNote",
+          "command": "clue.item.addNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
         }
@@ -63,13 +63,19 @@
     },
     "commands": [
       {
-        "command": "item.show",
+        "command": "clue.item.show",
         "title": "Show Item"
       },
       {
-        "command": "item.addNote",
+        "command": "clue.item.addNote",
         "title": "Add Note",
         "icon": "$(add)"
+      },
+      {
+        "command": "clue.reanalyze",
+        "title": "Re-analyze",
+        "category": "Clue",
+        "icon": "$(sync)"
       }
     ]
   },

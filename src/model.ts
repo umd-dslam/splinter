@@ -46,6 +46,11 @@ export class AnalyzeResult {
       this.unknowns.set(...item);
     }
   }
+
+  clear() {
+    this.entities.clear();
+    this.unknowns.clear();
+  }
 }
 
 function replacer(key: string, value: any) {

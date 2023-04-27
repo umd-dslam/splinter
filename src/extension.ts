@@ -10,6 +10,8 @@ import {
   serializeAnalyzeResult,
 } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
+import { Analyzer } from "./analyzer/base";
+import { Refreshable } from "./provider/refreshable";
 
 const ANALYZE_BATCH = 1;
 
@@ -44,30 +46,19 @@ async function saveResultToStorage(
   );
 }
 
-export function activate(context: vscode.ExtensionContext) {
-  if (!context.storageUri) {
-    return;
-  }
-
-  const rootPath =
-    vscode.workspace.workspaceFolders &&
-    vscode.workspace.workspaceFolders.length > 0
-      ? vscode.workspace.workspaceFolders[0].uri.fsPath
-      : "";
-
+function runAnalyzer(
+  analyzer: Analyzer,
+  rootPath: string,
+  providers: Refreshable[]
+) {
   const config = vscode.workspace.getConfiguration("clue");
+  const refreshProviders = () => {
+    for (const provider of providers) {
+      provider.refresh();
+    }
+  };
 
-  const recognizedProvider = new EntityOperationProvider(
-    rootPath,
-    analyzeResult.getEntities()
-  );
-  const unknownProvider = new EntityOperationProvider(
-    rootPath,
-    analyzeResult.getUnknowns()
-  );
-  const statisticsProvider = new StatisticsProvider(analyzeResult);
-
-  const analyzer = new TypeORMAnalyzer(rootPath);
+  refreshProviders();
 
   vscode.window.withProgress(
     {
@@ -88,8 +79,8 @@ export function activate(context: vscode.ExtensionContext) {
       } else {
         // If the result is not found, start a new analysis
         const files = await vscode.workspace.findFiles(
-          config.get("clue.includeFiles")!.toString(),
-          config.get("clue.excludeFiles")!.toString()
+          config.get("includeFiles")!.toString(),
+          config.get("excludeFiles")!.toString()
         );
 
         for (let i = 0; i < files.length; i += ANALYZE_BATCH) {
@@ -97,22 +88,23 @@ export function activate(context: vscode.ExtensionContext) {
             break;
           }
 
+          // Update the progress message
           const relativeFilePath = path.relative(rootPath, files[i].path);
           progress.report({
             increment: (ANALYZE_BATCH / files.length) * 100,
             message: `[${i + 1}/${files.length}] ${relativeFilePath}`,
           });
 
+          // Do the analysis
           await analyzer.analyze(
             files.slice(i, i + ANALYZE_BATCH),
             analyzeResult
           );
 
-          recognizedProvider.refresh();
-          unknownProvider.refresh();
-          statisticsProvider.refresh();
+          refreshProviders();
         }
 
+        // Finalize any unresolved entities
         await analyzer.finalize(analyzeResult);
 
         // Save the result to file for future use
@@ -123,25 +115,72 @@ export function activate(context: vscode.ExtensionContext) {
         );
       }
 
-      recognizedProvider.refresh();
-      unknownProvider.refresh();
-      statisticsProvider.refresh();
+      refreshProviders();
     }
   );
+}
 
+export function activate(context: vscode.ExtensionContext) {
+  if (!context.storageUri) {
+    return;
+  }
+
+  const rootPath =
+    vscode.workspace.workspaceFolders &&
+    vscode.workspace.workspaceFolders.length > 0
+      ? vscode.workspace.workspaceFolders[0].uri.fsPath
+      : "";
+
+  const statisticsProvider = new StatisticsProvider(analyzeResult);
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("statistics", statisticsProvider)
   );
 
+  const recognizedProvider = new EntityOperationProvider(
+    rootPath,
+    analyzeResult.getEntities()
+  );
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("recognized", recognizedProvider)
   );
 
+  const unknownProvider = new EntityOperationProvider(
+    rootPath,
+    analyzeResult.getUnknowns()
+  );
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("unknown", unknownProvider)
   );
 
-  vscode.commands.registerCommand("item.show", (loc: vscode.Location) => {
+  const analyzer = new TypeORMAnalyzer(rootPath);
+  runAnalyzer(analyzer, rootPath, [
+    recognizedProvider,
+    unknownProvider,
+    statisticsProvider,
+  ]);
+
+  vscode.commands.registerCommand("clue.reanalyze", async () => {
+    const vscodePath = vscode.Uri.joinPath(
+      vscode.Uri.file(rootPath),
+      ".vscode"
+    );
+    const resultPath = vscode.Uri.joinPath(
+      vscodePath,
+      analyzer.getSaveFileName()
+    );
+
+    await vscode.workspace.fs.delete(resultPath);
+
+    analyzeResult.clear();
+
+    runAnalyzer(analyzer, rootPath, [
+      recognizedProvider,
+      unknownProvider,
+      statisticsProvider,
+    ]);
+  });
+
+  vscode.commands.registerCommand("clue.item.show", (loc: vscode.Location) => {
     vscode.workspace.openTextDocument(loc.uri).then((doc) => {
       vscode.window.showTextDocument(doc).then((editor) => {
         editor.revealRange(loc.range, vscode.TextEditorRevealType.InCenter);
@@ -151,7 +190,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   vscode.commands.registerCommand(
-    "item.addNote",
+    "clue.item.addNote",
     (item: Entity | Operation) => {
       vscode.window.showInputBox({ value: item.note }).then((note) => {
         if (note !== undefined) {

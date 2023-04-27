@@ -1,9 +1,10 @@
 import * as vscode from "vscode";
 import { Entity, Operation, countOperationTypes } from "../model";
 import * as path from "path";
+import { Refreshable } from "./refreshable";
 
 export class EntityOperationProvider
-  implements vscode.TreeDataProvider<Entity | Operation>
+  implements vscode.TreeDataProvider<Entity | Operation>, Refreshable
 {
   constructor(
     private rootPath: string,

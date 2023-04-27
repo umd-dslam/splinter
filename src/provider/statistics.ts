@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { AnalyzeResult, countOperationTypes } from "../model";
+import { Refreshable } from "./refreshable";
 
 type Statistics = {
   name: string;
@@ -7,7 +8,9 @@ type Statistics = {
   children: Statistics[];
 };
 
-export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
+export class StatisticsProvider
+  implements vscode.TreeDataProvider<Statistics>, Refreshable
+{
   constructor(private result: AnalyzeResult) {}
 
   getTreeItem(element: Statistics): vscode.TreeItem {
