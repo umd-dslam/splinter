@@ -34,10 +34,10 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      cancellable: false,
+      cancellable: true,
       title: "TypeORM",
     },
-    async (progress) => {
+    async (progress, cancellation) => {
       // Try to load the result of a previous run from file
       let result = await analyzer.loadResultFromStorage(rootPath);
       if (result !== undefined) {
@@ -50,6 +50,11 @@ export function activate(context: vscode.ExtensionContext) {
         );
 
         for (let i = 0; i < files.length; i += ANALYZE_BATCH) {
+          if (cancellation.isCancellationRequested) {
+            analyzeResult.clear();
+            return;
+          }
+
           let messageFiles = files
             .slice(i, i + Math.min(5, ANALYZE_BATCH))
             .map((uri) => uri.fsPath)
@@ -59,6 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
             increment: (ANALYZE_BATCH / files.length) * 100,
             message: `Analyzing ${files.length} files\n${messageFiles}`,
           });
+
           await analyzer.analyze(
             files.slice(i, i + ANALYZE_BATCH),
             analyzeResult
