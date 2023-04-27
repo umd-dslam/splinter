@@ -53,7 +53,8 @@
       },
       {
         "command": "item.addNote",
-        "title": "Add Note"
+        "title": "Add Note",
+        "icon": "$(add)"
       }
     ]
   },

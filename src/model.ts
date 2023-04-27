@@ -1,5 +1,3 @@
-import { Location } from "vscode";
-
 export type Selection = {
   filePath: string;
   fromLine: number;
@@ -47,11 +45,6 @@ export class AnalyzeResult {
     for (const item of result.unknowns) {
       this.unknowns.set(...item);
     }
-  }
-
-  clear() {
-    this.entities.clear();
-    this.unknowns.clear();
   }
 }
 

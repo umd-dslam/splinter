@@ -1,19 +1,12 @@
 import * as vscode from "vscode";
 import { ESLint } from "eslint";
-import {
-  AnalyzeResult,
-  Selection,
-  deserializeAnalyzeResult,
-  serializeAnalyzeResult,
-} from "../model";
+import { AnalyzeResult, Selection } from "../model";
 import { Analyzer } from "./base";
 import {
   EntityMessage,
   JsonMessage,
   MethodMessage,
 } from "eslint-plugin-typeorm-analyzer/messages";
-
-const SAVE_FILE_NAME = "typeorm-analyze-result.json";
 
 export class TypeORMAnalyzer implements Analyzer {
   private eslint: ESLint;
@@ -206,34 +199,7 @@ export class TypeORMAnalyzer implements Analyzer {
     }
   }
 
-  async loadResultFromStorage(rootPath: string) {
-    const vscodePath = vscode.Uri.joinPath(
-      vscode.Uri.file(rootPath),
-      ".vscode"
-    );
-    const resultPath = vscode.Uri.joinPath(vscodePath, SAVE_FILE_NAME);
-
-    return vscode.workspace.fs.readFile(resultPath).then(
-      (data) => {
-        return deserializeAnalyzeResult(data.toString());
-      },
-      (_) => {
-        console.log("No result file found: ", resultPath.path);
-      }
-    );
-  }
-
-  async saveResultToStorage(rootPath: string, result: AnalyzeResult) {
-    const vscodePath = vscode.Uri.joinPath(
-      vscode.Uri.file(rootPath),
-      ".vscode"
-    );
-    const resultPath = vscode.Uri.joinPath(vscodePath, SAVE_FILE_NAME);
-
-    await vscode.workspace.fs.createDirectory(vscodePath);
-    await vscode.workspace.fs.writeFile(
-      resultPath,
-      Buffer.from(serializeAnalyzeResult(result))
-    );
+  getSaveFileName() {
+    return "typeorm-analyze-result.json";
   }
 }

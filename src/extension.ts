@@ -1,12 +1,48 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { EntityOperationProvider } from "./provider/entity-operation";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
-import { AnalyzeResult, Entity, Operation } from "./model";
+import {
+  AnalyzeResult,
+  Entity,
+  Operation,
+  deserializeAnalyzeResult,
+  serializeAnalyzeResult,
+} from "./model";
 import { StatisticsProvider } from "./provider/statistics";
 
 const ANALYZE_BATCH = 1;
 
 let analyzeResult: AnalyzeResult = new AnalyzeResult();
+
+async function loadResultFromStorage(rootPath: string, fileName: string) {
+  const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
+  const resultPath = vscode.Uri.joinPath(vscodePath, fileName);
+
+  return vscode.workspace.fs.readFile(resultPath).then(
+    (data) => {
+      return deserializeAnalyzeResult(data.toString());
+    },
+    (_) => {
+      console.log("No result file found: ", resultPath.path);
+    }
+  );
+}
+
+async function saveResultToStorage(
+  rootPath: string,
+  fileName: string,
+  result: AnalyzeResult
+) {
+  const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
+  const resultPath = vscode.Uri.joinPath(vscodePath, fileName);
+
+  await vscode.workspace.fs.createDirectory(vscodePath);
+  await vscode.workspace.fs.writeFile(
+    resultPath,
+    Buffer.from(serializeAnalyzeResult(result))
+  );
+}
 
 export function activate(context: vscode.ExtensionContext) {
   if (!context.storageUri) {
@@ -35,12 +71,17 @@ export function activate(context: vscode.ExtensionContext) {
     {
       location: vscode.ProgressLocation.Notification,
       cancellable: true,
-      title: "TypeORM",
+      title: "Analyzing TypeORM",
     },
     async (progress, cancellation) => {
       // Try to load the result of a previous run from file
-      let result = await analyzer.loadResultFromStorage(rootPath);
+      let result = await loadResultFromStorage(
+        rootPath,
+        analyzer.getSaveFileName()
+      );
+
       if (result !== undefined) {
+        // If the result is found, use it
         analyzeResult.extend(result);
       } else {
         // If the result is not found, start a new analysis
@@ -51,18 +92,13 @@ export function activate(context: vscode.ExtensionContext) {
 
         for (let i = 0; i < files.length; i += ANALYZE_BATCH) {
           if (cancellation.isCancellationRequested) {
-            analyzeResult.clear();
-            return;
+            break;
           }
 
-          let messageFiles = files
-            .slice(i, i + Math.min(5, ANALYZE_BATCH))
-            .map((uri) => uri.fsPath)
-            .join("\n");
-
+          const relativeFilePath = path.relative(rootPath, files[i].path);
           progress.report({
             increment: (ANALYZE_BATCH / files.length) * 100,
-            message: `Analyzing ${files.length} files\n${messageFiles}`,
+            message: `[${i + 1}/${files.length}] ${relativeFilePath}`,
           });
 
           await analyzer.analyze(
@@ -78,7 +114,11 @@ export function activate(context: vscode.ExtensionContext) {
         await analyzer.finalize(analyzeResult);
 
         // Save the result to file for future use
-        await analyzer.saveResultToStorage(rootPath, analyzeResult);
+        await saveResultToStorage(
+          rootPath,
+          analyzer.getSaveFileName(),
+          analyzeResult
+        );
       }
 
       recognizedProvider.refresh();
@@ -114,7 +154,11 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInputBox({ value: item.note }).then((note) => {
         if (note !== undefined) {
           item.note = note;
-          analyzer.saveResultToStorage(rootPath, analyzeResult);
+          saveResultToStorage(
+            rootPath,
+            analyzer.getSaveFileName(),
+            analyzeResult
+          );
         }
         recognizedProvider.updateItem(item);
         unknownProvider.updateItem(item);
