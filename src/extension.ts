@@ -7,6 +7,7 @@ import {
   Entity,
   Operation,
   deserializeAnalyzeResult,
+  isEntity,
   serializeAnalyzeResult,
 } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
@@ -182,6 +183,43 @@ export function activate(context: vscode.ExtensionContext) {
     ]);
   });
 
+  vscode.commands.registerCommand("clue.newEntity", () => {
+    vscode.window
+      .showInputBox({
+        placeHolder: "Enter the name of the entity to add",
+      })
+      .then((name) => {
+        if (name === undefined) {
+          return;
+        }
+
+        if (analyzeResult.getEntities().has(name)) {
+          vscode.window.showErrorMessage(
+            `Entity ${name} already exists in the list of recognized entities`
+          );
+          return;
+        }
+
+        analyzeResult.getEntities().set(name, {
+          selection: undefined,
+          name,
+          operations: [],
+          note: "",
+          isCustom: true,
+        });
+
+        saveResultToStorage(
+          rootPath,
+          analyzer.getSaveFileName(),
+          analyzeResult
+        ).then(() => {
+          statisticsProvider.refresh();
+          recognizedProvider.refresh();
+          unknownProvider.refresh();
+        });
+      });
+  });
+
   vscode.commands.registerCommand("clue.item.show", (loc: vscode.Location) => {
     vscode.workspace.openTextDocument(loc.uri).then((doc) => {
       vscode.window.showTextDocument(doc).then((editor) => {
@@ -195,19 +233,34 @@ export function activate(context: vscode.ExtensionContext) {
     "clue.item.addNote",
     (item: Entity | Operation) => {
       vscode.window.showInputBox({ value: item.note }).then((note) => {
-        if (note !== undefined) {
-          item.note = note;
-          saveResultToStorage(
-            rootPath,
-            analyzer.getSaveFileName(),
-            analyzeResult
-          );
+        if (note === undefined) {
+          return;
         }
-        recognizedProvider.updateItem(item);
-        unknownProvider.updateItem(item);
+        item.note = note;
+        saveResultToStorage(
+          rootPath,
+          analyzer.getSaveFileName(),
+          analyzeResult
+        ).then(() => {
+          recognizedProvider.refresh();
+          unknownProvider.refresh();
+        });
       });
     }
   );
+
+  vscode.commands.registerCommand("clue.item.remove", (item: Entity) => {
+    analyzeResult.removeEntity(item);
+    saveResultToStorage(
+      rootPath,
+      analyzer.getSaveFileName(),
+      analyzeResult
+    ).then(() => {
+      statisticsProvider.refresh();
+      recognizedProvider.refresh();
+      unknownProvider.refresh();
+    });
+  });
 }
 
 export function deactivate() {}

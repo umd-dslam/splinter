@@ -84,6 +84,7 @@ export class TypeORMAnalyzer implements Analyzer {
         name: "[EntityManager]",
         operations: [],
         note: "",
+        isCustom: false,
       });
       // Special entity for the QueryRunner
       entities.set("[QueryRunner]", {
@@ -91,6 +92,7 @@ export class TypeORMAnalyzer implements Analyzer {
         name: "[QueryRunner]",
         operations: [],
         note: "",
+        isCustom: false,
       });
       // Special entity for the Connection
       entities.set("[Connection]", {
@@ -98,6 +100,7 @@ export class TypeORMAnalyzer implements Analyzer {
         name: "[Connection]",
         operations: [],
         note: "",
+        isCustom: false,
       });
     }
 
@@ -114,6 +117,7 @@ export class TypeORMAnalyzer implements Analyzer {
           name: msg.name,
           operations: [],
           note: "",
+          isCustom: false,
         });
       }
     }
@@ -186,6 +190,7 @@ export class TypeORMAnalyzer implements Analyzer {
             name: callee,
             operations: [],
             note: "",
+            isCustom: false,
           });
         }
 

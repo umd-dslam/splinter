@@ -63,6 +63,17 @@
           "command": "clue.item.addNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
+        },
+        {
+          "command": "clue.item.remove",
+          "when": "view == recognized && viewItem == customEntity"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "clue.newEntity",
+          "when": "view == recognized",
+          "group": "navigation"
         }
       ]
     },
@@ -74,13 +85,24 @@
       {
         "command": "clue.item.addNote",
         "title": "Add Note",
-        "icon": "$(add)"
+        "icon": "$(note)"
+      },
+      {
+        "command": "clue.item.remove",
+        "title": "Remove",
+        "icon": "$(remove)"
       },
       {
         "command": "clue.reanalyze",
         "title": "Re-analyze",
         "category": "Clue",
         "icon": "$(sync)"
+      },
+      {
+        "command": "clue.newEntity",
+        "title": "New Entity",
+        "category": "Clue",
+        "icon": "$(add)"
       }
     ]
   },

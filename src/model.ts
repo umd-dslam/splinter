@@ -1,3 +1,5 @@
+import { EntityMessage } from "eslint-plugin-typeorm-analyzer/messages";
+
 export type Selection = {
   filePath: string;
   fromLine: number;
@@ -18,7 +20,12 @@ export type Entity = {
   name: string;
   operations: Operation[];
   note: string;
+  isCustom: boolean;
 };
+
+export function isEntity(item: Entity | Operation): item is Entity {
+  return (item as Entity).operations !== undefined;
+}
 
 export class AnalyzeResult {
   private entities: Map<string, Entity>;
@@ -44,6 +51,13 @@ export class AnalyzeResult {
 
     for (const item of result.unknowns) {
       this.unknowns.set(...item);
+    }
+  }
+
+  removeEntity(item: Entity) {
+    let entity = this.entities.get(item.name);
+    if (entity && entity.isCustom) {
+      this.entities.delete(item.name);
     }
   }
 

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Entity, Operation, countOperationTypes } from "../model";
+import { Entity, Operation, countOperationTypes, isEntity } from "../model";
 import * as path from "path";
 import { Refreshable } from "./refreshable";
 
@@ -11,16 +11,12 @@ export class EntityOperationProvider
     private entities: Map<string, Entity>
   ) {}
 
-  isEntity(element: Entity | Operation): element is Entity {
-    return (element as Entity).operations !== undefined;
-  }
-
   getTreeItem(element: Entity | Operation): vscode.TreeItem {
     let relativePath = element.selection
       ? path.relative(this.rootPath, element.selection.filePath)
       : "";
     let item = new vscode.TreeItem(element.name);
-    if (this.isEntity(element)) {
+    if (isEntity(element)) {
       item.collapsibleState =
         element.operations.length > 0
           ? vscode.TreeItemCollapsibleState.Collapsed
@@ -29,9 +25,14 @@ export class EntityOperationProvider
         .sort((a, b) => (a[0] < b[0] ? -1 : 1))
         .map(([type, count]) => `${type}: ${count}`)
         .join(" | ");
+      item.iconPath = new vscode.ThemeIcon("table");
+      if (element.isCustom) {
+        item.contextValue = "customEntity";
+      }
     } else {
       item.collapsibleState = vscode.TreeItemCollapsibleState.None;
       item.description = element.type;
+      item.iconPath = new vscode.ThemeIcon("symbol-method");
     }
     if (element.note) {
       if (item.description) {
@@ -67,7 +68,7 @@ export class EntityOperationProvider
     element?: Entity | Operation
   ): Promise<Entity[] | Operation[]> {
     if (element) {
-      if (this.isEntity(element)) {
+      if (isEntity(element)) {
         return element.operations.sort((a, b) => (a.type < b.type ? -1 : 1));
       }
       return [];
