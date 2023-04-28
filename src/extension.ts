@@ -13,8 +13,6 @@ import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
 import { Refreshable } from "./provider/refreshable";
 
-const ANALYZE_BATCH = 1;
-
 let analyzeResult: AnalyzeResult = new AnalyzeResult();
 
 async function loadResultFromStorage(rootPath: string, fileName: string) {
@@ -60,11 +58,13 @@ function runAnalyzer(
 
   refreshProviders();
 
+  const batchSize = config.get("analyzeBatchSize") as number;
+
   vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
       cancellable: true,
-      title: "Analyzing TypeORM",
+      title: `Analyzing TypeORM in batches of ${batchSize} files`,
     },
     async (progress, cancellation) => {
       // Try to load the result of a previous run from file
@@ -83,23 +83,23 @@ function runAnalyzer(
           config.get("excludeFiles")!.toString()
         );
 
-        for (let i = 0; i < files.length; i += ANALYZE_BATCH) {
+        for (let i = 0; i < files.length; i += batchSize) {
           if (cancellation.isCancellationRequested) {
             break;
           }
 
           // Update the progress message
-          const relativeFilePath = path.relative(rootPath, files[i].path);
+          const pathSample = files
+            .slice(i, i + batchSize)
+            .map((f) => path.relative(rootPath, f.path))
+            .join(", ");
           progress.report({
-            increment: (ANALYZE_BATCH / files.length) * 100,
-            message: `[${i + 1}/${files.length}] ${relativeFilePath}`,
+            increment: (batchSize / files.length) * 100,
+            message: `[${i + 1}/${files.length}] ${pathSample}`,
           });
 
           // Do the analysis
-          await analyzer.analyze(
-            files.slice(i, i + ANALYZE_BATCH),
-            analyzeResult
-          );
+          await analyzer.analyze(files.slice(i, i + batchSize), analyzeResult);
 
           refreshProviders();
         }

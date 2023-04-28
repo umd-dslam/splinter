@@ -182,7 +182,7 @@ export class TypeORMAnalyzer implements Analyzer {
         const callee = msg.callee[0];
         if (!unknowns.has(callee)) {
           unknowns.set(callee, {
-            selection,
+            selection: undefined,
             name: callee,
             operations: [],
             note: "",

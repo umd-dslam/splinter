@@ -44,7 +44,7 @@ export class EntityOperationProvider
 
     if (element.selection) {
       item.command = {
-        command: "item.show",
+        command: "clue.item.show",
         title: "Show",
         arguments: [
           new vscode.Location(
