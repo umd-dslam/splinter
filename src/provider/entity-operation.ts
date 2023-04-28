@@ -3,58 +3,68 @@ import { Entity, Operation, countOperationTypes, isEntity } from "../model";
 import * as path from "path";
 import { Refreshable } from "./refreshable";
 
+export type EntityOperation = {
+  inner: Entity | Operation;
+  parent: Entity;
+  isRecognized: boolean;
+};
+
 export class EntityOperationProvider
-  implements vscode.TreeDataProvider<Entity | Operation>, Refreshable
+  implements vscode.TreeDataProvider<EntityOperation>, Refreshable
 {
   constructor(
     private rootPath: string,
-    private entities: Map<string, Entity>
+    private entities: Map<string, Entity>,
+    private isRecognized: boolean
   ) {}
 
-  getTreeItem(element: Entity | Operation): vscode.TreeItem {
-    let relativePath = element.selection
-      ? path.relative(this.rootPath, element.selection.filePath)
+  getTreeItem(element: EntityOperation): vscode.TreeItem {
+    let inner = element.inner;
+    let relativePath = inner.selection
+      ? path.relative(this.rootPath, inner.selection.filePath)
       : "";
-    let item = new vscode.TreeItem(element.name);
-    if (isEntity(element)) {
+    let item = new vscode.TreeItem(inner.name);
+
+    if (isEntity(inner)) {
       item.collapsibleState =
-        element.operations.length > 0
+        inner.operations.length > 0
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None;
-      item.description = Object.entries(countOperationTypes(element.operations))
+      item.description = Object.entries(countOperationTypes(inner.operations))
         .sort((a, b) => (a[0] < b[0] ? -1 : 1))
         .map(([type, count]) => `${type}: ${count}`)
         .join(" | ");
       item.iconPath = new vscode.ThemeIcon("table");
-      if (element.isCustom) {
+      if (inner.isCustom) {
         item.contextValue = "customEntity";
       }
     } else {
       item.collapsibleState = vscode.TreeItemCollapsibleState.None;
-      item.description = element.type;
+      item.description = inner.type;
       item.iconPath = new vscode.ThemeIcon("symbol-method");
+      item.contextValue = "operation";
     }
-    if (element.note) {
+    if (inner.note) {
       if (item.description) {
         item.description += " | ";
       }
-      item.description += `note: ${element.note}`;
+      item.description += `note: ${inner.note}`;
     }
 
-    item.tooltip = `${relativePath}\nnote: ${element.note}`;
+    item.tooltip = `${relativePath}\nnote: ${inner.note}`;
 
-    if (element.selection) {
+    if (inner.selection) {
       item.command = {
         command: "clue.item.show",
         title: "Show",
         arguments: [
           new vscode.Location(
-            vscode.Uri.file(element.selection.filePath),
+            vscode.Uri.file(inner.selection.filePath),
             new vscode.Range(
-              element.selection.fromLine,
-              element.selection.fromColumn,
-              element.selection.toLine,
-              element.selection.toColumn
+              inner.selection.fromLine,
+              inner.selection.fromColumn,
+              inner.selection.toLine,
+              inner.selection.toColumn
             )
           ),
         ],
@@ -64,30 +74,39 @@ export class EntityOperationProvider
     return item;
   }
 
-  async getChildren(
-    element?: Entity | Operation
-  ): Promise<Entity[] | Operation[]> {
+  async getChildren(element?: EntityOperation): Promise<EntityOperation[]> {
     if (element) {
-      if (isEntity(element)) {
-        return element.operations.sort((a, b) => (a.type < b.type ? -1 : 1));
+      const entity = element.inner;
+      if (isEntity(entity)) {
+        return entity.operations
+          .sort((a, b) => (a.type < b.type ? -1 : 1))
+          .map((operation) => ({
+            inner: operation,
+            parent: entity,
+            isRecognized: this.isRecognized,
+          }));
       }
       return [];
     }
 
-    return Array.from(this.entities.values()).sort((a, b) =>
-      a.name < b.name ? -1 : 1
-    );
+    return Array.from(this.entities.values())
+      .sort((a, b) => (a.name < b.name ? -1 : 1))
+      .map((entity) => ({
+        inner: entity,
+        parent: entity,
+        isRecognized: this.isRecognized,
+      }));
   }
 
   private _onDidChangeTreeData: vscode.EventEmitter<
-    Entity | Operation | undefined | null | void
-  > = new vscode.EventEmitter<Entity | undefined | null | void>();
+    EntityOperation | undefined | null | void
+  > = new vscode.EventEmitter<EntityOperation | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<
-    Entity | Operation | undefined | null | void
+    EntityOperation | undefined | null | void
   > = this._onDidChangeTreeData.event;
 
-  updateItem(entity: Entity | Operation): void {
-    this._onDidChangeTreeData.fire(entity);
+  updateItem(item: EntityOperation): void {
+    this._onDidChangeTreeData.fire(item);
   }
 
   refresh(): void {

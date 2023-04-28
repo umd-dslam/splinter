@@ -60,18 +60,23 @@
     "menus": {
       "view/item/context": [
         {
+          "command": "clue.operation.move",
+          "when": "(view == recognized || view == unknown) && viewItem == operation",
+          "group": "inline"
+        },
+        {
           "command": "clue.item.addNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
         },
         {
-          "command": "clue.item.remove",
+          "command": "clue.entity.remove",
           "when": "view == recognized && viewItem == customEntity"
         }
       ],
       "view/title": [
         {
-          "command": "clue.newEntity",
+          "command": "clue.entity.add",
           "when": "view == recognized",
           "group": "navigation"
         }
@@ -83,12 +88,17 @@
         "title": "Show Item"
       },
       {
+        "command": "clue.operation.move",
+        "title": "Move",
+        "icon": "$(move)"
+      },
+      {
         "command": "clue.item.addNote",
         "title": "Add Note",
         "icon": "$(note)"
       },
       {
-        "command": "clue.item.remove",
+        "command": "clue.entity.remove",
         "title": "Remove",
         "icon": "$(remove)"
       },
@@ -99,7 +109,7 @@
         "icon": "$(sync)"
       },
       {
-        "command": "clue.newEntity",
+        "command": "clue.entity.add",
         "title": "New Entity",
         "category": "Clue",
         "icon": "$(add)"

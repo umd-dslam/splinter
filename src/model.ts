@@ -54,13 +54,6 @@ export class AnalyzeResult {
     }
   }
 
-  removeEntity(item: Entity) {
-    let entity = this.entities.get(item.name);
-    if (entity && entity.isCustom) {
-      this.entities.delete(item.name);
-    }
-  }
-
   clear() {
     this.entities.clear();
     this.unknowns.clear();
