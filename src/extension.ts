@@ -7,8 +7,6 @@ import {
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import {
   AnalyzeResult,
-  Entity,
-  Operation,
   deserializeAnalyzeResult,
   isEntity,
   serializeAnalyzeResult,
@@ -16,7 +14,6 @@ import {
 import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
 import { Refreshable } from "./provider/refreshable";
-import { getVSCodeDownloadUrl } from "@vscode/test-electron/out/util";
 
 let analyzeResult: AnalyzeResult = new AnalyzeResult();
 
@@ -201,7 +198,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (analyzeResult.getEntities().has(name)) {
           vscode.window.showErrorMessage(
-            `Entity ${name} already exists in the list of recognized entities`
+            `Entity "${name}" already exists in the list of recognized entities`
           );
           return;
         }
@@ -341,6 +338,12 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
   );
+
+  vscode.commands.registerCommand("clue.item.copy", (item: EntityOperation) => {
+    import("clipboardy").then((clipboardy) => {
+      clipboardy.default.writeSync(item.inner.name);
+    });
+  });
 }
 
 export function deactivate() {}

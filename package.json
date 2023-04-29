@@ -70,6 +70,10 @@
           "group": "inline"
         },
         {
+          "command": "clue.item.copy",
+          "when": "view == recognized || view == unknown"
+        },
+        {
           "command": "clue.entity.remove",
           "when": "view == recognized && viewItem == customEntity"
         }
@@ -86,6 +90,10 @@
       {
         "command": "clue.item.show",
         "title": "Show Item"
+      },
+      {
+        "command": "clue.item.copy",
+        "title": "Copy"
       },
       {
         "command": "clue.operation.move",
@@ -138,5 +146,8 @@
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
     "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "clipboardy": "^3.0.0"
   }
 }
