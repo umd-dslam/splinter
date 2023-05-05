@@ -27,7 +27,7 @@
         },
         "clue.excludeFiles": {
           "type": "string",
-          "default": "**/node_modules/**",
+          "default": "{**/node_modules/**,**/migrations/**}",
           "definitions": "Glob pattern of files to exclude from the analysis"
         },
         "clue.analyzeBatchSize": {

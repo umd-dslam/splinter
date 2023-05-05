@@ -242,20 +242,25 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "clue.item.addNote",
     (item: EntityOperation) => {
-      vscode.window.showInputBox({ value: item.inner.note }).then((note) => {
-        if (note === undefined) {
-          return;
-        }
-        item.inner.note = note;
-        saveResultToStorage(
-          rootPath,
-          analyzer.getSaveFileName(),
-          analyzeResult
-        ).then(() => {
-          recognizedProvider.refresh();
-          unknownProvider.refresh();
+      vscode.window
+        .showInputBox({
+          placeHolder: `Enter a note for "${item.inner.name}"`,
+          value: item.inner.note,
+        })
+        .then((note) => {
+          if (note === undefined) {
+            return;
+          }
+          item.inner.note = note;
+          saveResultToStorage(
+            rootPath,
+            analyzer.getSaveFileName(),
+            analyzeResult
+          ).then(() => {
+            recognizedProvider.refresh();
+            unknownProvider.refresh();
+          });
         });
-      });
     }
   );
 
@@ -292,12 +297,16 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       vscode.window
-        .showQuickPick(["Recognized", "Unknown"])
+        .showQuickPick(["Recognized", "Unknown"], {
+          placeHolder: `Choose a group to move the operation "${item.inner.name}" to`,
+        })
         .then((destList) => {
+          if (!destList) {
+            return;
+          }
           vscode.window
             .showInputBox({
-              placeHolder:
-                "Enter the name of a recognized entity to move the operation to",
+              placeHolder: `Enter the name of an entity in the ${destList} list to move the operation "${item.inner.name}" to`,
             })
             .then((destEntity) => {
               if (
