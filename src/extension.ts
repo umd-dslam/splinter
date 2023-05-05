@@ -85,6 +85,8 @@ function runAnalyzer(
           config.get("excludeFiles")!.toString()
         );
 
+        files.sort();
+
         for (let i = 0; i < files.length; i += batchSize) {
           if (cancellation.isCancellationRequested) {
             break;
@@ -156,7 +158,12 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider("unknown", unknownProvider)
   );
 
-  const analyzer = new TypeORMAnalyzer(rootPath);
+  const analyzer = new TypeORMAnalyzer(
+    path.join(
+      rootPath,
+      vscode.workspace.getConfiguration("clue").get("tsconfigRootDir", "")
+    )
+  );
 
   // Run the initial analysis
   runAnalyzer(analyzer, rootPath, [

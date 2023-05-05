@@ -12,7 +12,7 @@ export class TypeORMAnalyzer implements Analyzer {
   private eslint: ESLint;
   private unresolvedMessages: [JsonMessage, Selection][] = [];
 
-  constructor(rootPath: string) {
+  constructor(tsconfigRootDir: string) {
     this.eslint = new ESLint({
       useEslintrc: false,
       resolvePluginsRelativeTo: __dirname + "/../../node_modules",
@@ -22,7 +22,7 @@ export class TypeORMAnalyzer implements Analyzer {
           sourceType: "module",
           ecmaVersion: "latest",
           project: "tsconfig.json",
-          tsconfigRootDir: rootPath,
+          tsconfigRootDir,
         },
         plugins: ["typeorm-analyzer"],
         /* eslint-disable @typescript-eslint/naming-convention */
@@ -180,6 +180,12 @@ export class TypeORMAnalyzer implements Analyzer {
   }
 
   async finalize(result: AnalyzeResult) {
+    // Last chance to match operations to entities
+    let unresolved = this.unresolvedMessages;
+    this.unresolvedMessages = [];
+    this.collectOperations(unresolved, result);
+
+    // Put the unresolved messages into unknowns
     let unknowns = result.getUnknowns();
     for (const [msg, selection] of this.unresolvedMessages) {
       if (MethodMessage.validate(msg)) {
@@ -202,6 +208,7 @@ export class TypeORMAnalyzer implements Analyzer {
         });
       }
     }
+    this.unresolvedMessages = [];
   }
 
   getSaveFileName() {
