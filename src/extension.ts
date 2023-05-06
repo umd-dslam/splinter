@@ -5,46 +5,9 @@ import {
   EntityOperationProvider,
 } from "./provider/entity-operation";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
-import {
-  AnalyzeResult,
-  Entity,
-  deserializeAnalyzeResult,
-  isEntity,
-  serializeAnalyzeResult,
-} from "./model";
+import { AnalyzeResult, Entity, isEntity } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
-
-let analyzeResult: AnalyzeResult = new AnalyzeResult();
-
-async function loadResultFromStorage(rootPath: string, fileName: string) {
-  const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
-  const resultPath = vscode.Uri.joinPath(vscodePath, fileName);
-
-  return vscode.workspace.fs.readFile(resultPath).then(
-    (data) => {
-      return deserializeAnalyzeResult(data.toString());
-    },
-    (_) => {
-      console.log("No result file found: ", resultPath.path);
-    }
-  );
-}
-
-async function saveResultToStorage(
-  rootPath: string,
-  fileName: string,
-  result: AnalyzeResult
-) {
-  const vscodePath = vscode.Uri.joinPath(vscode.Uri.file(rootPath), ".vscode");
-  const resultPath = vscode.Uri.joinPath(vscodePath, fileName);
-
-  await vscode.workspace.fs.createDirectory(vscodePath);
-  await vscode.workspace.fs.writeFile(
-    resultPath,
-    Buffer.from(serializeAnalyzeResult(result))
-  );
-}
 
 function runAnalyzer(
   analyzer: Analyzer,
@@ -64,16 +27,9 @@ function runAnalyzer(
       title: `Analyzing TypeORM in batches of ${batchSize} files`,
     },
     async (progress, cancellation) => {
-      // Try to load the result of a previous run from file
-      let result = await loadResultFromStorage(
-        rootPath,
-        analyzer.getSaveFileName()
-      );
+      let analyzeResult = AnalyzeResult.getInstance();
 
-      if (result !== undefined) {
-        // If the result is found, use it
-        analyzeResult.extend(result);
-      } else {
+      if (!(await analyzeResult.loadFromStorage(rootPath))) {
         // If the result is not found, start a new analysis
         const files = await vscode.workspace.findFiles(
           config.get("includeFiles")!.toString(),
@@ -107,11 +63,7 @@ function runAnalyzer(
         await analyzer.finalize(analyzeResult);
 
         // Save the result to file for future use
-        await saveResultToStorage(
-          rootPath,
-          analyzer.getSaveFileName(),
-          analyzeResult
-        );
+        await analyzeResult.saveToStorage(rootPath);
       }
 
       refreshFn();
@@ -129,6 +81,16 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.workspaceFolders.length > 0
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "";
+
+  const analyzer = new TypeORMAnalyzer(
+    path.join(
+      rootPath,
+      vscode.workspace.getConfiguration("clue").get("tsconfigRootDir", "")
+    )
+  );
+
+  let analyzeResult = AnalyzeResult.getInstance();
+  analyzeResult.setFileName(analyzer.getSaveFileName());
 
   const statisticsProvider = new StatisticsProvider(analyzeResult);
   context.subscriptions.push(
@@ -158,13 +120,6 @@ export function activate(context: vscode.ExtensionContext) {
     recognizedProvider.refresh();
     unknownProvider.refresh();
   };
-
-  const analyzer = new TypeORMAnalyzer(
-    path.join(
-      rootPath,
-      vscode.workspace.getConfiguration("clue").get("tsconfigRootDir", "")
-    )
-  );
 
   // Run the initial analysis
   runAnalyzer(analyzer, rootPath, refreshProviders);
@@ -211,11 +166,7 @@ export function activate(context: vscode.ExtensionContext) {
           isCustom: true,
         });
 
-        saveResultToStorage(
-          rootPath,
-          analyzer.getSaveFileName(),
-          analyzeResult
-        ).then(() => {
+        analyzeResult.saveToStorage(rootPath).then(() => {
           refreshProviders();
         });
       });
@@ -243,11 +194,7 @@ export function activate(context: vscode.ExtensionContext) {
             return;
           }
           item.inner.note = note;
-          saveResultToStorage(
-            rootPath,
-            analyzer.getSaveFileName(),
-            analyzeResult
-          ).then(() => {
+          analyzeResult.saveToStorage(rootPath).then(() => {
             refreshProviders();
           });
         });
@@ -267,11 +214,7 @@ export function activate(context: vscode.ExtensionContext) {
         entities.delete(item.inner.name);
       }
 
-      saveResultToStorage(
-        rootPath,
-        analyzer.getSaveFileName(),
-        analyzeResult
-      ).then(() => {
+      analyzeResult.saveToStorage(rootPath).then(() => {
         refreshProviders();
       });
     }
@@ -341,11 +284,7 @@ export function activate(context: vscode.ExtensionContext) {
                 to.operations.push(item.inner);
               }
 
-              saveResultToStorage(
-                rootPath,
-                analyzer.getSaveFileName(),
-                analyzeResult
-              ).then(() => {
+              analyzeResult.saveToStorage(rootPath).then(() => {
                 refreshProviders();
               });
             });

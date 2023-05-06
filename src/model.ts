@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import * as vscode from "vscode";
 
 export type Selection = {
   filePath: string;
@@ -28,10 +29,17 @@ export function isEntity(item: Entity | Operation): item is Entity {
 }
 
 export class AnalyzeResult {
+  private static _instance: AnalyzeResult;
+
   private entities: Map<string, Entity>;
   private unknowns: Map<string, Entity>;
+  private fileName: string = "analyze-result.json";
 
-  constructor() {
+  public static getInstance(): AnalyzeResult {
+    return this._instance || (this._instance = new this());
+  }
+
+  private constructor() {
     this.entities = new Map();
     this.unknowns = new Map();
   }
@@ -42,6 +50,10 @@ export class AnalyzeResult {
 
   getUnknowns(): Map<string, Entity> {
     return this.unknowns;
+  }
+
+  setFileName(fileName: string) {
+    this.fileName = fileName;
   }
 
   extend(result: AnalyzeResult) {
@@ -57,6 +69,38 @@ export class AnalyzeResult {
   clear() {
     this.entities.clear();
     this.unknowns.clear();
+  }
+
+  async loadFromStorage(rootPath: string): Promise<boolean> {
+    const resultPath = vscode.Uri.joinPath(
+      vscode.Uri.file(rootPath),
+      ".vscode",
+      this.fileName
+    );
+
+    try {
+      let data = await vscode.workspace.fs.readFile(resultPath);
+      let newResult: AnalyzeResult = JSON.parse(data.toString(), reviver);
+      this.clear();
+      this.extend(newResult);
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  async saveToStorage(rootPath: string) {
+    const vscodePath = vscode.Uri.joinPath(
+      vscode.Uri.file(rootPath),
+      ".vscode"
+    );
+    const resultPath = vscode.Uri.joinPath(vscodePath, this.fileName);
+
+    await vscode.workspace.fs.createDirectory(vscodePath);
+    await vscode.workspace.fs.writeFile(
+      resultPath,
+      Buffer.from(JSON.stringify(this, replacer))
+    );
   }
 }
 
@@ -78,20 +122,6 @@ function reviver(key: string, value: any) {
     }
   }
   return value;
-}
-
-export function serializeAnalyzeResult(result: AnalyzeResult): string {
-  return JSON.stringify(result, replacer);
-}
-
-export function deserializeAnalyzeResult(
-  result: string
-): AnalyzeResult | undefined {
-  try {
-    return JSON.parse(result, reviver);
-  } catch (e) {
-    return undefined;
-  }
 }
 
 export function groupOperationTypes(
