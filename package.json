@@ -66,12 +66,21 @@
       "view/item/context": [
         {
           "command": "clue.item.addNote",
-          "when": "view == recognized || view == unknown"
+          "when": "view == recognized || view == unknown",
+          "group": "inline"
         },
         {
           "command": "clue.item.addNote",
-          "when": "view == recognized || view == unknown",
+          "when": "view == recognized || view == unknown"
+        },
+        {
+          "command": "clue.item.clearNote",
+          "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/",
           "group": "inline"
+        },
+        {
+          "command": "clue.item.clearNote",
+          "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/"
         },
         {
           "command": "clue.item.copy",
@@ -79,7 +88,7 @@
         },
         {
           "command": "clue.entity.remove",
-          "when": "view == recognized && viewItem == customEntity"
+          "when": "view == recognized && viewItem =~ /customEntity/"
         }
       ],
       "view/title": [
@@ -105,6 +114,17 @@
         "icon": "$(note)"
       },
       {
+        "command": "clue.item.clearNote",
+        "title": "Clear Note",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "clue.entity.add",
+        "title": "New Entity",
+        "category": "Clue",
+        "icon": "$(add)"
+      },
+      {
         "command": "clue.entity.remove",
         "title": "Remove",
         "icon": "$(remove)"
@@ -114,12 +134,6 @@
         "title": "Re-analyze",
         "category": "Clue",
         "icon": "$(sync)"
-      },
-      {
-        "command": "clue.entity.add",
-        "title": "New Entity",
-        "category": "Clue",
-        "icon": "$(add)"
       }
     ]
   },

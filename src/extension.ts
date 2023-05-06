@@ -228,7 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
           value,
         })
         .then((note) => {
-          if (note === undefined) {
+          if (!note) {
             return;
           }
           for (let i of allItems) {
@@ -236,6 +236,19 @@ export function activate(context: vscode.ExtensionContext) {
           }
           analyzeResult.saveToStorage(rootPath);
         });
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "clue.item.clearNote",
+    (item: EntityOperation, allItems: EntityOperation[]) => {
+      if (!allItems) {
+        allItems = [item];
+      }
+      for (let i of allItems) {
+        i.inner.note = "";
+      }
+      analyzeResult.saveToStorage(rootPath);
     }
   );
 

@@ -40,6 +40,7 @@ export class EntityOperationProvider
 
     let description: string[] = [];
     let tooltip: string[] = [relativePath];
+    let contextValue: string[] = [];
 
     if (inner.selection) {
       description.push(`line: ${inner.selection.fromLine}`);
@@ -58,23 +59,23 @@ export class EntityOperationProvider
       );
       item.iconPath = new vscode.ThemeIcon("table");
       if (inner.isCustom) {
-        item.contextValue = "customEntity";
+        contextValue.push("customEntity");
       }
     } else {
       description.push(inner.type);
-
       item.collapsibleState = vscode.TreeItemCollapsibleState.None;
       item.iconPath = new vscode.ThemeIcon("symbol-method");
-      item.contextValue = "operation";
     }
 
     if (inner.note) {
       description.push(`note: ${inner.note}`);
       tooltip.push(inner.note);
+      contextValue.push("hasNote");
     }
 
     item.description = description.join(" | ");
     item.tooltip = tooltip.join("\n");
+    item.contextValue = contextValue.join(" ");
 
     if (inner.selection) {
       item.command = {
@@ -207,6 +208,7 @@ export class EntityOperationProvider
       deletedItems.push([movedItem.idInParent, srcEntity]);
     }
 
+    // Sort by index in descending order before deleting to avoid index shift
     for (const [index, entity] of deletedItems.sort(([a], [b]) => b - a)) {
       entity.operations.splice(index, 1);
     }
