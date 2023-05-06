@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { ESLint } from "eslint";
-import { AnalyzeResult, Selection } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, Selection } from "../model";
 import { Analyzer } from "./base";
 import {
   EntityMessage,
@@ -76,7 +76,7 @@ export class TypeORMAnalyzer implements Analyzer {
     messages: [JsonMessage, Selection][],
     result: AnalyzeResult
   ) {
-    let entities = result.getEntities();
+    let entities = result.getGroup(AnalyzeResultGroup.recognized);
     if (entities.size === 0) {
       // Special entity for the Entity Manager API (https://typeorm.io/entity-manager-api)
       entities.set("[EntityManager]", {
@@ -127,7 +127,7 @@ export class TypeORMAnalyzer implements Analyzer {
     messages: [JsonMessage, Selection][],
     result: AnalyzeResult
   ) {
-    let entities = result.getEntities();
+    let entities = result.getGroup(AnalyzeResultGroup.recognized);
     for (const [msg, selection] of messages) {
       if (MethodMessage.validate(msg)) {
         const operation = {
@@ -186,7 +186,7 @@ export class TypeORMAnalyzer implements Analyzer {
     this.collectOperations(unresolved, result);
 
     // Put the unresolved messages into unknowns
-    let unknowns = result.getUnknowns();
+    let unknowns = result.getGroup(AnalyzeResultGroup.unknown);
     for (const [msg, selection] of this.unresolvedMessages) {
       if (MethodMessage.validate(msg)) {
         const callee = msg.callee[0];

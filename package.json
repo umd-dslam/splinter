@@ -65,11 +65,6 @@
     "menus": {
       "view/item/context": [
         {
-          "command": "clue.operation.move",
-          "when": "(view == recognized || view == unknown) && viewItem == operation",
-          "group": "inline"
-        },
-        {
           "command": "clue.item.addNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
@@ -99,11 +94,6 @@
       {
         "command": "clue.item.copy",
         "title": "Copy"
-      },
-      {
-        "command": "clue.operation.move",
-        "title": "Move",
-        "icon": "$(move)"
       },
       {
         "command": "clue.item.addNote",

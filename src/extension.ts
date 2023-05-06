@@ -5,18 +5,16 @@ import {
   EntityOperationProvider,
 } from "./provider/entity-operation";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
-import { AnalyzeResult, Entity, isEntity } from "./model";
+import { AnalyzeResult, AnalyzeResultGroup, Entity, isEntity } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
 
-function runAnalyzer(
-  analyzer: Analyzer,
-  rootPath: string,
-  refreshFn: () => void
-) {
+function runAnalyzer(analyzer: Analyzer, rootPath: string) {
   const config = vscode.workspace.getConfiguration("clue");
 
-  refreshFn();
+  let analyzeResult = AnalyzeResult.getInstance();
+
+  analyzeResult.refreshViews();
 
   const batchSize = config.get("analyzeBatchSize") as number;
 
@@ -27,8 +25,6 @@ function runAnalyzer(
       title: `Analyzing TypeORM in batches of ${batchSize} files`,
     },
     async (progress, cancellation) => {
-      let analyzeResult = AnalyzeResult.getInstance();
-
       if (!(await analyzeResult.loadFromStorage(rootPath))) {
         // If the result is not found, start a new analysis
         const files = await vscode.workspace.findFiles(
@@ -56,7 +52,7 @@ function runAnalyzer(
           // Do the analysis
           await analyzer.analyze(files.slice(i, i + batchSize), analyzeResult);
 
-          refreshFn();
+          analyzeResult.refreshViews();
         }
 
         // Finalize any unresolved entities
@@ -66,7 +62,7 @@ function runAnalyzer(
         await analyzeResult.saveToStorage(rootPath);
       }
 
-      refreshFn();
+      analyzeResult.refreshViews();
     }
   );
 }
@@ -99,30 +95,36 @@ export function activate(context: vscode.ExtensionContext) {
 
   const recognizedProvider = new EntityOperationProvider(
     rootPath,
-    analyzeResult.getEntities(),
-    "Recognized"
+    AnalyzeResultGroup.recognized
   );
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("recognized", recognizedProvider)
+    vscode.window.createTreeView("recognized", {
+      treeDataProvider: recognizedProvider,
+      canSelectMany: true,
+      dragAndDropController: recognizedProvider,
+    })
   );
 
   const unknownProvider = new EntityOperationProvider(
     rootPath,
-    analyzeResult.getUnknowns(),
-    "Unknown"
+    AnalyzeResultGroup.unknown
   );
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("unknown", unknownProvider)
+    vscode.window.createTreeView("unknown", {
+      treeDataProvider: unknownProvider,
+      canSelectMany: true,
+      dragAndDropController: unknownProvider,
+    })
   );
 
-  const refreshProviders = () => {
+  analyzeResult.setRefreshFn(() => {
     statisticsProvider.refresh();
     recognizedProvider.refresh();
     unknownProvider.refresh();
-  };
+  });
 
   // Run the initial analysis
-  runAnalyzer(analyzer, rootPath, refreshProviders);
+  runAnalyzer(analyzer, rootPath);
 
   vscode.commands.registerCommand("clue.reanalyze", async () => {
     const vscodePath = vscode.Uri.joinPath(
@@ -138,7 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     analyzeResult.clear();
 
-    runAnalyzer(analyzer, rootPath, refreshProviders);
+    runAnalyzer(analyzer, rootPath);
   });
 
   vscode.commands.registerCommand("clue.entity.add", () => {
@@ -151,14 +153,16 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        if (analyzeResult.getEntities().has(name)) {
+        let result = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
+
+        if (result.has(name)) {
           vscode.window.showErrorMessage(
             `Entity "${name}" already exists in the list of recognized entities`
           );
           return;
         }
 
-        analyzeResult.getEntities().set(name, {
+        result.set(name, {
           selection: undefined,
           name,
           operations: [],
@@ -166,9 +170,7 @@ export function activate(context: vscode.ExtensionContext) {
           isCustom: true,
         });
 
-        analyzeResult.saveToStorage(rootPath).then(() => {
-          refreshProviders();
-        });
+        analyzeResult.saveToStorage(rootPath);
       });
   });
 
@@ -194,9 +196,7 @@ export function activate(context: vscode.ExtensionContext) {
             return;
           }
           item.inner.note = note;
-          analyzeResult.saveToStorage(rootPath).then(() => {
-            refreshProviders();
-          });
+          analyzeResult.saveToStorage(rootPath);
         });
     }
   );
@@ -208,87 +208,13 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const entities = analyzeResult.getEntities();
+      const entities = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
       let entity = entities.get(item.inner.name);
       if (entity && entity.isCustom) {
         entities.delete(item.inner.name);
       }
 
-      analyzeResult.saveToStorage(rootPath).then(() => {
-        refreshProviders();
-      });
-    }
-  );
-
-  vscode.commands.registerCommand(
-    "clue.operation.move",
-    (item: EntityOperation) => {
-      if (isEntity(item.inner)) {
-        return;
-      }
-
-      vscode.window
-        .showQuickPick(["Recognized", "Unknown"], {
-          placeHolder: `Choose a list to move "${item.inner.name}" to`,
-        })
-        .then((dstList) => {
-          if (!dstList) {
-            return;
-          }
-
-          var srcEntities: Map<string, Entity>;
-          if (item.treeName === "Recognized") {
-            srcEntities = analyzeResult.getEntities();
-          } else {
-            srcEntities = analyzeResult.getUnknowns();
-          }
-
-          var dstEntities: Map<string, Entity>;
-          if (dstList === "Recognized") {
-            dstEntities = analyzeResult.getEntities();
-          } else {
-            dstEntities = analyzeResult.getUnknowns();
-          }
-
-          if (dstEntities.size === 0) {
-            vscode.window.showErrorMessage(
-              `There are no entities in the "${dstList}" list`
-            );
-            return;
-          }
-
-          vscode.window
-            .showQuickPick(
-              Array.from(dstEntities.values())
-                .map((e) => e.name)
-                .sort(),
-              {
-                placeHolder: `Select an entity to move "${item.inner.name}" to`,
-              }
-            )
-            .then((destEntity) => {
-              if (
-                isEntity(item.inner) ||
-                destEntity === undefined ||
-                item.parent.name === destEntity
-              ) {
-                return;
-              }
-
-              const from = srcEntities.get(item.parent.name);
-              const to = dstEntities.get(destEntity);
-              if (from && to) {
-                from.operations = from.operations.filter(
-                  (op) => op !== item.inner
-                );
-                to.operations.push(item.inner);
-              }
-
-              analyzeResult.saveToStorage(rootPath).then(() => {
-                refreshProviders();
-              });
-            });
-        });
+      analyzeResult.saveToStorage(rootPath);
     }
   );
 

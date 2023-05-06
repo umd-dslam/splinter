@@ -28,28 +28,31 @@ export function isEntity(item: Entity | Operation): item is Entity {
   return (item as Entity).operations !== undefined;
 }
 
+export enum AnalyzeResultGroup {
+  recognized = "Recognized",
+  unknown = "Unknown",
+}
+
 export class AnalyzeResult {
   private static _instance: AnalyzeResult;
 
-  private entities: Map<string, Entity>;
-  private unknowns: Map<string, Entity>;
+  private group: Map<string, Map<string, Entity>>;
   private fileName: string = "analyze-result.json";
+  private refreshFn: () => void = () => {};
 
   public static getInstance(): AnalyzeResult {
     return this._instance || (this._instance = new this());
   }
 
   private constructor() {
-    this.entities = new Map();
-    this.unknowns = new Map();
+    this.group = new Map([
+      [AnalyzeResultGroup.recognized, new Map<string, Entity>()],
+      [AnalyzeResultGroup.unknown, new Map<string, Entity>()],
+    ]);
   }
 
-  getEntities(): Map<string, Entity> {
-    return this.entities;
-  }
-
-  getUnknowns(): Map<string, Entity> {
-    return this.unknowns;
+  getGroup(group: AnalyzeResultGroup): Map<string, Entity> {
+    return this.group.get(group)!;
   }
 
   setFileName(fileName: string) {
@@ -57,18 +60,17 @@ export class AnalyzeResult {
   }
 
   extend(result: AnalyzeResult) {
-    for (const item of result.entities) {
-      this.entities.set(...item);
-    }
-
-    for (const item of result.unknowns) {
-      this.unknowns.set(...item);
+    for (const [groupId, value] of result.group) {
+      for (const item of value) {
+        this.group.get(groupId)!.set(...item);
+      }
     }
   }
 
   clear() {
-    this.entities.clear();
-    this.unknowns.clear();
+    for (const value of this.group.values()) {
+      value.clear();
+    }
   }
 
   async loadFromStorage(rootPath: string): Promise<boolean> {
@@ -83,6 +85,7 @@ export class AnalyzeResult {
       let newResult: AnalyzeResult = JSON.parse(data.toString(), reviver);
       this.clear();
       this.extend(newResult);
+      this.refreshFn();
     } catch (e) {
       return false;
     }
@@ -101,6 +104,16 @@ export class AnalyzeResult {
       resultPath,
       Buffer.from(JSON.stringify(this, replacer))
     );
+
+    this.refreshFn();
+  }
+
+  setRefreshFn(fn: () => void) {
+    this.refreshFn = fn;
+  }
+
+  refreshViews() {
+    this.refreshFn();
   }
 }
 

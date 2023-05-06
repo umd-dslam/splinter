@@ -1,20 +1,34 @@
 import * as vscode from "vscode";
-import { Entity, Operation, groupOperationTypes, isEntity } from "../model";
+import {
+  AnalyzeResult,
+  AnalyzeResultGroup,
+  Entity,
+  Operation,
+  groupOperationTypes,
+  isEntity,
+} from "../model";
 import * as path from "path";
 
 export type EntityOperation = {
   inner: Entity | Operation;
   parent: Entity;
-  treeName: "Recognized" | "Unknown";
+  idInParent: number;
+  resultGroup: AnalyzeResultGroup;
+};
+
+type DragAndDropDataType = {
+  resultGroup: AnalyzeResultGroup;
+  items: { name: string; parentName: string; idInParent: number }[];
 };
 
 export class EntityOperationProvider
-  implements vscode.TreeDataProvider<EntityOperation>
+  implements
+    vscode.TreeDataProvider<EntityOperation>,
+    vscode.TreeDragAndDropController<EntityOperation>
 {
   constructor(
     private rootPath: string,
-    private entities: Map<string, Entity>,
-    private treeName: "Recognized" | "Unknown"
+    private resultGroup: AnalyzeResultGroup
   ) {}
 
   getTreeItem(element: EntityOperation): vscode.TreeItem {
@@ -89,21 +103,25 @@ export class EntityOperationProvider
       if (isEntity(entity)) {
         return entity.operations
           .sort((a, b) => (a.type < b.type ? -1 : 1))
-          .map((operation) => ({
+          .map((operation, index) => ({
             inner: operation,
             parent: entity,
-            treeName: this.treeName,
+            idInParent: index,
+            resultGroup: this.resultGroup,
           }));
       }
       return [];
     }
 
-    return Array.from(this.entities.values())
+    var entities = AnalyzeResult.getInstance().getGroup(this.resultGroup);
+
+    return Array.from(entities.values())
       .sort((a, b) => (a.name < b.name ? -1 : 1))
       .map((entity) => ({
         inner: entity,
         parent: entity,
-        treeName: this.treeName,
+        idInParent: -1,
+        resultGroup: this.resultGroup,
       }));
   }
 
@@ -120,5 +138,79 @@ export class EntityOperationProvider
 
   refresh(): void {
     this._onDidChangeTreeData.fire(null);
+  }
+
+  dropMimeTypes = ["application/vnd.code.tree.entity-operation"];
+  dragMimeTypes = ["application/vnd.code.tree.entity-operation"];
+
+  async handleDrag(
+    items: EntityOperation[],
+    dataTransfer: vscode.DataTransfer,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    const data: DragAndDropDataType = {
+      resultGroup: this.resultGroup,
+      items: items
+        .filter((item) => !isEntity(item.inner))
+        .map((item) => ({
+          name: item.inner.name,
+          parentName: item.parent.name,
+          idInParent: item.idInParent,
+        })),
+    };
+
+    dataTransfer.set(
+      "application/vnd.code.tree.entity-operation",
+      new vscode.DataTransferItem(JSON.stringify(data))
+    );
+  }
+
+  async handleDrop(
+    target: EntityOperation | undefined,
+    dataTransfer: vscode.DataTransfer,
+    token: vscode.CancellationToken
+  ): Promise<void> {
+    let data = dataTransfer.get("application/vnd.code.tree.entity-operation");
+    if (!data || !target || !isEntity(target.inner)) {
+      return;
+    }
+
+    let parsed = JSON.parse(data.value) as DragAndDropDataType;
+    if (parsed.items.length === 0) {
+      return;
+    }
+
+    let items = parsed.items;
+    let confirm = await vscode.window.showInformationMessage(
+      `Move ${items.length} operations to ${target.inner.name}?`,
+      { modal: true, detail: items.map((item) => item.name).join("\n") },
+      "Move"
+    );
+
+    if (confirm !== "Move") {
+      return;
+    }
+
+    let analyzeResult = AnalyzeResult.getInstance();
+    let srcGroup = analyzeResult.getGroup(parsed.resultGroup);
+    let deletedItems: [number, Entity][] = [];
+    for (const movedItem of items) {
+      let srcEntity = srcGroup.get(movedItem.parentName);
+      if (!srcEntity || srcEntity === target.inner) {
+        continue;
+      }
+      let operation = srcEntity.operations[movedItem.idInParent];
+      if (!operation) {
+        continue;
+      }
+      target.inner.operations.push(operation);
+      deletedItems.push([movedItem.idInParent, srcEntity]);
+    }
+
+    for (const [index, entity] of deletedItems.sort(([a], [b]) => b - a)) {
+      entity.operations.splice(index, 1);
+    }
+
+    await analyzeResult.saveToStorage(this.rootPath);
   }
 }

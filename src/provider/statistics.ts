@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import { AnalyzeResult, groupOperationTypes } from "../model";
+import {
+  AnalyzeResult,
+  AnalyzeResultGroup,
+  groupOperationTypes,
+} from "../model";
 
 type Statistics = {
   name: string;
@@ -30,7 +34,9 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
 
     // Accumulate the count per operation type across all entities.
     let operationTypeCounts = {} as { [key: string]: Set<string> };
-    for (const entity of this.result.getEntities().values()) {
+    for (const entity of this.result
+      .getGroup(AnalyzeResultGroup.recognized)
+      .values()) {
       operationTypeCounts = groupOperationTypes(
         entity.operations,
         operationTypeCounts
@@ -40,7 +46,7 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
     return [
       {
         name: "entities",
-        value: this.result.getEntities().size,
+        value: this.result.getGroup(AnalyzeResultGroup.recognized).size,
         children: Object.entries(operationTypeCounts).map(([type, ids]) => {
           return {
             name: type,
