@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
-import { Entity, Operation, countOperationTypes, isEntity } from "../model";
+import { Entity, Operation, groupOperationTypes, isEntity } from "../model";
 import * as path from "path";
-import { Refreshable } from "./refreshable";
 
 export type EntityOperation = {
   inner: Entity | Operation;
@@ -10,7 +9,7 @@ export type EntityOperation = {
 };
 
 export class EntityOperationProvider
-  implements vscode.TreeDataProvider<EntityOperation>, Refreshable
+  implements vscode.TreeDataProvider<EntityOperation>
 {
   constructor(
     private rootPath: string,
@@ -30,7 +29,8 @@ export class EntityOperationProvider
         inner.operations.length > 0
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None;
-      item.description = Object.entries(countOperationTypes(inner.operations))
+      item.description = Object.entries(groupOperationTypes(inner.operations))
+        .map(([type, ids]) => [type, ids.size])
         .sort((a, b) => (a[0] < b[0] ? -1 : 1))
         .map(([type, count]) => `${type}: ${count}`)
         .join(" | ");

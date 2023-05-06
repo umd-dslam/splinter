@@ -13,7 +13,6 @@ import {
 } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
-import { Refreshable } from "./provider/refreshable";
 
 let analyzeResult: AnalyzeResult = new AnalyzeResult();
 
@@ -49,16 +48,11 @@ async function saveResultToStorage(
 function runAnalyzer(
   analyzer: Analyzer,
   rootPath: string,
-  providers: Refreshable[]
+  refreshFn: () => void
 ) {
   const config = vscode.workspace.getConfiguration("clue");
-  const refreshProviders = () => {
-    for (const provider of providers) {
-      provider.refresh();
-    }
-  };
 
-  refreshProviders();
+  refreshFn();
 
   const batchSize = config.get("analyzeBatchSize") as number;
 
@@ -105,7 +99,7 @@ function runAnalyzer(
           // Do the analysis
           await analyzer.analyze(files.slice(i, i + batchSize), analyzeResult);
 
-          refreshProviders();
+          refreshFn();
         }
 
         // Finalize any unresolved entities
@@ -119,7 +113,7 @@ function runAnalyzer(
         );
       }
 
-      refreshProviders();
+      refreshFn();
     }
   );
 }
@@ -158,6 +152,12 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider("unknown", unknownProvider)
   );
 
+  const refreshProviders = () => {
+    statisticsProvider.refresh();
+    recognizedProvider.refresh();
+    unknownProvider.refresh();
+  };
+
   const analyzer = new TypeORMAnalyzer(
     path.join(
       rootPath,
@@ -166,11 +166,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // Run the initial analysis
-  runAnalyzer(analyzer, rootPath, [
-    recognizedProvider,
-    unknownProvider,
-    statisticsProvider,
-  ]);
+  runAnalyzer(analyzer, rootPath, refreshProviders);
 
   vscode.commands.registerCommand("clue.reanalyze", async () => {
     const vscodePath = vscode.Uri.joinPath(
@@ -186,11 +182,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     analyzeResult.clear();
 
-    runAnalyzer(analyzer, rootPath, [
-      recognizedProvider,
-      unknownProvider,
-      statisticsProvider,
-    ]);
+    runAnalyzer(analyzer, rootPath, refreshProviders);
   });
 
   vscode.commands.registerCommand("clue.entity.add", () => {
@@ -223,9 +215,7 @@ export function activate(context: vscode.ExtensionContext) {
           analyzer.getSaveFileName(),
           analyzeResult
         ).then(() => {
-          statisticsProvider.refresh();
-          recognizedProvider.refresh();
-          unknownProvider.refresh();
+          refreshProviders();
         });
       });
   });
@@ -257,8 +247,7 @@ export function activate(context: vscode.ExtensionContext) {
             analyzer.getSaveFileName(),
             analyzeResult
           ).then(() => {
-            recognizedProvider.refresh();
-            unknownProvider.refresh();
+            refreshProviders();
           });
         });
     }
@@ -282,9 +271,7 @@ export function activate(context: vscode.ExtensionContext) {
         analyzer.getSaveFileName(),
         analyzeResult
       ).then(() => {
-        statisticsProvider.refresh();
-        recognizedProvider.refresh();
-        unknownProvider.refresh();
+        refreshProviders();
       });
     }
   );
@@ -298,7 +285,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       vscode.window
         .showQuickPick(["Recognized", "Unknown"], {
-          placeHolder: `Choose a group to move the operation "${item.inner.name}" to`,
+          placeHolder: `Choose a group to move "${item.inner.name}" to`,
         })
         .then((destList) => {
           if (!destList) {
@@ -306,7 +293,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
           vscode.window
             .showInputBox({
-              placeHolder: `Enter the name of an entity in the ${destList} list to move the operation "${item.inner.name}" to`,
+              placeHolder: `Enter the name of an entity from the list ${destList} to move "${item.inner.name}" to`,
             })
             .then((destEntity) => {
               if (
@@ -346,9 +333,7 @@ export function activate(context: vscode.ExtensionContext) {
                 analyzer.getSaveFileName(),
                 analyzeResult
               ).then(() => {
-                statisticsProvider.refresh();
-                recognizedProvider.refresh();
-                unknownProvider.refresh();
+                refreshProviders();
               });
             });
         });

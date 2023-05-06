@@ -1,4 +1,4 @@
-import { EntityMessage } from "eslint-plugin-typeorm-analyzer/messages";
+import { randomUUID } from "crypto";
 
 export type Selection = {
   filePath: string;
@@ -94,16 +94,36 @@ export function deserializeAnalyzeResult(
   }
 }
 
-export function countOperationTypes(
+export function groupOperationTypes(
   operations: Operation[],
-  start?: { [key: string]: number }
-): { [key: string]: number } {
-  if (start === undefined) {
-    start = {};
+  result?: { [key: string]: Set<string> }
+): { [key: string]: Set<string> } {
+  // Result is a map from operation type to a set of ids of operations of that type.
+  result = { ...result };
+
+  let addId = (type: string, id: string) => {
+    if (result) {
+      if (type in result) {
+        result[type].add(id);
+      } else {
+        result[type] = new Set([id]);
+      }
+    }
+  };
+
+  for (const operation of operations) {
+    // Check if the pattern "!<operation.type>" exists in the note of the operation.
+    if (!operation.note.match(new RegExp(`!${operation.type}`))) {
+      const id = randomUUID();
+      addId(operation.type, id);
+    }
+    // Iterate over all tokens with the pattern "@<type>(<id>)" in the note of operations.
+    // For each token, add <id> to the set of <type> in the result.
+    const matches = operation.note.matchAll(/@(\w+)\((\w+)\)/g);
+    for (const match of matches) {
+      addId(match[1], match[2]);
+    }
   }
 
-  return operations.reduce((acc, operation) => {
-    acc[operation.type] = acc[operation.type] ? acc[operation.type] + 1 : 1;
-    return acc;
-  }, start);
+  return result;
 }
