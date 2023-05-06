@@ -277,10 +277,6 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  vscode.window.createTreeView("recognized", {
-    treeDataProvider: recognizedProvider,
-  });
-
   vscode.commands.registerCommand(
     "clue.operation.move",
     (item: EntityOperation) => {

@@ -24,34 +24,43 @@ export class EntityOperationProvider
       : "";
     let item = new vscode.TreeItem(inner.name);
 
+    let description: string[] = [];
+    let tooltip: string[] = [relativePath];
+
+    if (inner.selection) {
+      description.push(`line: ${inner.selection.fromLine}`);
+    }
+
     if (isEntity(inner)) {
       item.collapsibleState =
         inner.operations.length > 0
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None;
-      item.description = Object.entries(groupOperationTypes(inner.operations))
-        .map(([type, ids]) => [type, ids.size])
-        .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-        .map(([type, count]) => `${type}: ${count}`)
-        .join(" | ");
+      description.push(
+        ...Object.entries(groupOperationTypes(inner.operations))
+          .map(([type, ids]) => [type, ids.size])
+          .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+          .map(([type, count]) => `${type}: ${count}`)
+      );
       item.iconPath = new vscode.ThemeIcon("table");
       if (inner.isCustom) {
         item.contextValue = "customEntity";
       }
     } else {
+      description.push(inner.type);
+
       item.collapsibleState = vscode.TreeItemCollapsibleState.None;
-      item.description = inner.type;
       item.iconPath = new vscode.ThemeIcon("symbol-method");
       item.contextValue = "operation";
     }
+
     if (inner.note) {
-      if (item.description) {
-        item.description += " | ";
-      }
-      item.description += `note: ${inner.note}`;
+      description.push(`note: ${inner.note}`);
+      tooltip.push(inner.note);
     }
 
-    item.tooltip = `${relativePath}\nnote: ${inner.note}`;
+    item.description = description.join(" | ");
+    item.tooltip = tooltip.join("\n");
 
     if (inner.selection) {
       item.command = {
