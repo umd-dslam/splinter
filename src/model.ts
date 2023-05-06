@@ -144,8 +144,11 @@ export function groupOperationTypes(
   // Result is a map from operation type to a set of ids of operations of that type.
   result = { ...result };
 
-  let addId = (type: string, id: string) => {
+  let addId = (type: string, id?: string) => {
     if (result) {
+      if (!id) {
+        id = randomUUID();
+      }
       if (type in result) {
         result[type].add(id);
       } else {
@@ -157,14 +160,14 @@ export function groupOperationTypes(
   for (const operation of operations) {
     // Check if the pattern "!<operation.type>" exists in the note of the operation.
     if (!operation.note.match(new RegExp(`!${operation.type}`))) {
-      const id = randomUUID();
-      addId(operation.type, id);
+      addId(operation.type);
     }
     // Iterate over all tokens with the pattern "@<type>(<id>)" in the note of operations.
     // For each token, add <id> to the set of <type> in the result.
-    const matches = operation.note.matchAll(/@(\w+)\((\w+)\)/g);
+    const matches = operation.note.matchAll(/@(\w+)(\(\w+\))?/g);
     for (const match of matches) {
-      addId(match[1], match[2]);
+      let id = match[2]?.slice(1, -1);
+      addId(match[1], id);
     }
   }
 

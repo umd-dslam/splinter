@@ -5,7 +5,7 @@ import {
   EntityOperationProvider,
 } from "./provider/entity-operation";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
-import { AnalyzeResult, AnalyzeResultGroup, Entity, isEntity } from "./model";
+import { AnalyzeResult, AnalyzeResultGroup, isEntity } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
 
