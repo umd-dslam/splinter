@@ -78,6 +78,10 @@ export function activate(context: vscode.ExtensionContext) {
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "";
 
+  /**********************************************************/
+  /*             Set up the analyzer and views              */
+  /**********************************************************/
+
   const analyzer = new TypeORMAnalyzer(
     path.join(
       rootPath,
@@ -125,6 +129,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Run the initial analysis
   runAnalyzer(analyzer, rootPath);
+
+  /**********************************************************/
+  /*                  Register commands                     */
+  /**********************************************************/
 
   vscode.commands.registerCommand("clue.reanalyze", async () => {
     const vscodePath = vscode.Uri.joinPath(
@@ -174,33 +182,6 @@ export function activate(context: vscode.ExtensionContext) {
       });
   });
 
-  vscode.commands.registerCommand("clue.item.show", (loc: vscode.Location) => {
-    vscode.workspace.openTextDocument(loc.uri).then((doc) => {
-      vscode.window.showTextDocument(doc).then((editor) => {
-        editor.revealRange(loc.range, vscode.TextEditorRevealType.InCenter);
-        editor.selection = new vscode.Selection(loc.range.start, loc.range.end);
-      });
-    });
-  });
-
-  vscode.commands.registerCommand(
-    "clue.item.addNote",
-    (item: EntityOperation) => {
-      vscode.window
-        .showInputBox({
-          placeHolder: `Enter a note for "${item.inner.name}"`,
-          value: item.inner.note,
-        })
-        .then((note) => {
-          if (note === undefined) {
-            return;
-          }
-          item.inner.note = note;
-          analyzeResult.saveToStorage(rootPath);
-        });
-    }
-  );
-
   vscode.commands.registerCommand(
     "clue.entity.remove",
     (item: EntityOperation) => {
@@ -218,11 +199,55 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  vscode.commands.registerCommand("clue.item.copy", (item: EntityOperation) => {
-    import("clipboardy").then((clipboardy) => {
-      clipboardy.default.writeSync(item.inner.name);
+  vscode.commands.registerCommand("clue.item.show", (loc: vscode.Location) => {
+    vscode.workspace.openTextDocument(loc.uri).then((doc) => {
+      vscode.window.showTextDocument(doc).then((editor) => {
+        editor.revealRange(loc.range, vscode.TextEditorRevealType.InCenter);
+        editor.selection = new vscode.Selection(loc.range.start, loc.range.end);
+      });
     });
   });
+
+  vscode.commands.registerCommand(
+    "clue.item.addNote",
+    (item: EntityOperation, allItems: EntityOperation[]) => {
+      if (!allItems) {
+        allItems = [item];
+      }
+
+      var placeHolder = `Enter a note for "${item.inner.name}"`;
+      var value = item.inner.note;
+      if (allItems.length > 1) {
+        placeHolder = `Enter a note for ${allItems.length} items`;
+        value = "";
+      }
+
+      vscode.window
+        .showInputBox({
+          placeHolder,
+          value,
+        })
+        .then((note) => {
+          if (note === undefined) {
+            return;
+          }
+          for (let i of allItems) {
+            i.inner.note = note;
+          }
+          analyzeResult.saveToStorage(rootPath);
+        });
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "clue.item.copy",
+    (_: EntityOperation, allItems: EntityOperation[]) => {
+      import("clipboardy").then((clipboardy) => {
+        let combined = allItems.map((i) => i.inner.name).join("\n");
+        clipboardy.default.writeSync(combined);
+      });
+    }
+  );
 }
 
 export function deactivate() {}

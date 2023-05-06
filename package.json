@@ -66,6 +66,10 @@
       "view/item/context": [
         {
           "command": "clue.item.addNote",
+          "when": "view == recognized || view == unknown"
+        },
+        {
+          "command": "clue.item.addNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
         },
