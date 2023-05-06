@@ -32,30 +32,49 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
       return element.children;
     }
 
-    // Accumulate the count per operation type across all entities.
-    let operationTypeCounts = {} as { [key: string]: Set<string> };
-    for (const entity of this.result
-      .getGroup(AnalyzeResultGroup.recognized)
-      .values()) {
-      operationTypeCounts = groupOperationTypes(
-        entity.operations,
-        operationTypeCounts
-      );
-    }
+    let stats: Statistics[] = [];
 
-    return [
-      {
-        name: "entities",
-        value: this.result.getGroup(AnalyzeResultGroup.recognized).size,
-        children: Object.entries(operationTypeCounts).map(([type, ids]) => {
+    for (const group of [
+      AnalyzeResultGroup.recognized,
+      AnalyzeResultGroup.unknown,
+    ]) {
+      // Accumulate the count per operation type across all entities.
+      let operationTypeCounts = {} as { [key: string]: Set<string> };
+      for (const entity of this.result.getGroup(group).values()) {
+        operationTypeCounts = groupOperationTypes(
+          entity.operations,
+          operationTypeCounts
+        );
+      }
+
+      // Combine the entity count with operation type counts.
+      let children = [
+        {
+          name: "entities",
+          value: this.result.getGroup(group).size,
+          children: [],
+        },
+      ];
+
+      children.push(
+        ...Object.entries(operationTypeCounts).map(([type, ids]) => {
           return {
             name: type,
             value: ids.size,
             children: [],
           };
-        }),
-      },
-    ];
+        })
+      );
+
+      // Add the group to the stats.
+      stats.push({
+        name: group,
+        value: this.result.getGroup(group).size,
+        children,
+      });
+    }
+
+    return stats;
   }
 
   private _onDidChangeTreeData: vscode.EventEmitter<void> =
