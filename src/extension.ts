@@ -7,6 +7,7 @@ import {
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import {
   AnalyzeResult,
+  Entity,
   deserializeAnalyzeResult,
   isEntity,
   serializeAnalyzeResult,
@@ -276,6 +277,10 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  vscode.window.createTreeView("recognized", {
+    treeDataProvider: recognizedProvider,
+  });
+
   vscode.commands.registerCommand(
     "clue.operation.move",
     (item: EntityOperation) => {
@@ -285,16 +290,43 @@ export function activate(context: vscode.ExtensionContext) {
 
       vscode.window
         .showQuickPick(["Recognized", "Unknown"], {
-          placeHolder: `Choose a group to move "${item.inner.name}" to`,
+          placeHolder: `Choose a list to move "${item.inner.name}" to`,
         })
-        .then((destList) => {
-          if (!destList) {
+        .then((dstList) => {
+          if (!dstList) {
             return;
           }
+
+          var srcEntities: Map<string, Entity>;
+          if (item.isRecognized) {
+            srcEntities = analyzeResult.getEntities();
+          } else {
+            srcEntities = analyzeResult.getUnknowns();
+          }
+
+          var dstEntities: Map<string, Entity>;
+          if (dstList === "Recognized") {
+            dstEntities = analyzeResult.getEntities();
+          } else {
+            dstEntities = analyzeResult.getUnknowns();
+          }
+
+          if (dstEntities.size === 0) {
+            vscode.window.showErrorMessage(
+              `There are no entities in the "${dstList}" list`
+            );
+            return;
+          }
+
           vscode.window
-            .showInputBox({
-              placeHolder: `Enter the name of an entity from the list ${destList} to move "${item.inner.name}" to`,
-            })
+            .showQuickPick(
+              Array.from(dstEntities.values())
+                .map((e) => e.name)
+                .sort(),
+              {
+                placeHolder: `Select an entity to move "${item.inner.name}" to`,
+              }
+            )
             .then((destEntity) => {
               if (
                 isEntity(item.inner) ||
@@ -304,24 +336,9 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
               }
 
-              const entities = analyzeResult.getEntities();
-              const unknown = analyzeResult.getUnknowns();
-
-              const to =
-                destList === "Recognized"
-                  ? entities.get(destEntity)
-                  : unknown.get(destEntity);
-              if (!to) {
-                vscode.window.showErrorMessage(
-                  `Entity "${destEntity}" does not exist in the ${destList} list`
-                );
-                return;
-              }
-
-              const from = item.isRecognized
-                ? entities.get(item.parent.name)
-                : unknown.get(item.parent.name);
-              if (from) {
+              const from = srcEntities.get(item.parent.name);
+              const to = dstEntities.get(destEntity);
+              if (from && to) {
                 from.operations = from.operations.filter(
                   (op) => op !== item.inner
                 );
