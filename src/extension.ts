@@ -138,7 +138,7 @@ export function activate(context: vscode.ExtensionContext) {
   const recognizedProvider = new EntityOperationProvider(
     rootPath,
     analyzeResult.getEntities(),
-    true
+    "Recognized"
   );
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("recognized", recognizedProvider)
@@ -147,7 +147,7 @@ export function activate(context: vscode.ExtensionContext) {
   const unknownProvider = new EntityOperationProvider(
     rootPath,
     analyzeResult.getUnknowns(),
-    false
+    "Unknown"
   );
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("unknown", unknownProvider)
@@ -298,7 +298,7 @@ export function activate(context: vscode.ExtensionContext) {
           }
 
           var srcEntities: Map<string, Entity>;
-          if (item.isRecognized) {
+          if (item.treeName === "Recognized") {
             srcEntities = analyzeResult.getEntities();
           } else {
             srcEntities = analyzeResult.getUnknowns();

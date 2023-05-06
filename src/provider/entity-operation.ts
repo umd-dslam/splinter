@@ -5,7 +5,7 @@ import * as path from "path";
 export type EntityOperation = {
   inner: Entity | Operation;
   parent: Entity;
-  isRecognized: boolean;
+  treeName: "Recognized" | "Unknown";
 };
 
 export class EntityOperationProvider
@@ -14,7 +14,7 @@ export class EntityOperationProvider
   constructor(
     private rootPath: string,
     private entities: Map<string, Entity>,
-    private isRecognized: boolean
+    private treeName: "Recognized" | "Unknown"
   ) {}
 
   getTreeItem(element: EntityOperation): vscode.TreeItem {
@@ -83,7 +83,7 @@ export class EntityOperationProvider
           .map((operation) => ({
             inner: operation,
             parent: entity,
-            isRecognized: this.isRecognized,
+            treeName: this.treeName,
           }));
       }
       return [];
@@ -94,7 +94,7 @@ export class EntityOperationProvider
       .map((entity) => ({
         inner: entity,
         parent: entity,
-        isRecognized: this.isRecognized,
+        treeName: this.treeName,
       }));
   }
 
