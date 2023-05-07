@@ -177,6 +177,14 @@ export class TypeORMAnalyzer implements Analyzer {
             found = true;
             break;
           }
+
+          // Exact match of the entity name. This might cause false positives if
+          // a non-entity callee happens to have the same name as an entity.
+          if (entities.has(calleeType)) {
+            entities.get(calleeType)!.operations.push(operation);
+            found = true;
+            break;
+          }
         }
 
         // Cannot recognize an entity

@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
   let analyzeResult = AnalyzeResult.getInstance();
   analyzeResult.setFileName(analyzer.getSaveFileName());
 
-  const statisticsProvider = new StatisticsProvider(analyzeResult);
+  const statisticsProvider = new StatisticsProvider();
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("statistics", statisticsProvider)
   );
