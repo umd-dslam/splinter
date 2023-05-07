@@ -19,9 +19,8 @@ export class TypeORMAnalyzer implements Analyzer {
       overrideConfig: {
         parser: __dirname + "/../../node_modules/@typescript-eslint/parser",
         parserOptions: {
-          sourceType: "module",
           ecmaVersion: "latest",
-          project: "tsconfig.json",
+          project: "./**/tsconfig.json",
           tsconfigRootDir,
         },
         plugins: ["typeorm-analyzer"],
@@ -160,10 +159,19 @@ export class TypeORMAnalyzer implements Analyzer {
           }
 
           // Parse the entity name in the pattern "Repository<EntityName>"
-          let entityName = calleeType.match(/Repository<(.*)>/)?.[1];
-          let entity =
+          var entityName = calleeType.match(/Repository<(.*)>/)?.[1];
+          var entity =
             entityName === undefined ? entityName : entities.get(entityName);
+          if (entity !== undefined) {
+            entity.operations.push(operation);
+            found = true;
+            break;
+          }
 
+          // Parse the entity name in the pattern "SelectQueryBuilder<EntityName>"
+          entityName = calleeType.match(/SelectQueryBuilder<(.*)>/)?.[1];
+          entity =
+            entityName === undefined ? entityName : entities.get(entityName);
           if (entity !== undefined) {
             entity.operations.push(operation);
             found = true;

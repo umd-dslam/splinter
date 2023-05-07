@@ -8,6 +8,7 @@ import {
   isEntity,
 } from "../model";
 import * as path from "path";
+import * as pluralize from "pluralize";
 
 export type EntityOperation = {
   inner: Entity | Operation;
@@ -182,9 +183,14 @@ export class EntityOperationProvider
     }
 
     let items = parsed.items;
+    let detail = items
+      .map((item) => `${item.name} [${item.parentName}]`)
+      .join("\n");
     let confirm = await vscode.window.showInformationMessage(
-      `Move ${items.length} operations to ${target.inner.name}?`,
-      { modal: true, detail: items.map((item) => item.name).join("\n") },
+      `Move ${pluralize("operations", items.length, true)} to ${
+        target.inner.name
+      }?`,
+      { modal: true, detail },
       "Move"
     );
 

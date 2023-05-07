@@ -7,12 +7,12 @@ import {
 
 type Statistics = {
   name: string;
-  value: number;
+  value?: number;
   children: Statistics[];
 };
 
 export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
-  constructor(private result: AnalyzeResult) {}
+  constructor() {}
 
   getTreeItem(element: Statistics): vscode.TreeItem {
     var item = new vscode.TreeItem(
@@ -21,7 +21,7 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None
     );
-    item.description = element.value.toString();
+    item.description = element.value?.toString();
     item.tooltip = `${element.name}: ${item.description}`;
 
     return item;
@@ -32,6 +32,8 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
       return element.children;
     }
 
+    let result = AnalyzeResult.getInstance();
+
     let stats: Statistics[] = [];
 
     for (const group of [
@@ -40,7 +42,7 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
     ]) {
       // Accumulate the count per operation type across all entities.
       let operationTypeCounts = {} as { [key: string]: Set<string> };
-      for (const entity of this.result.getGroup(group).values()) {
+      for (const entity of result.getGroup(group).values()) {
         operationTypeCounts = groupOperationTypes(
           entity.operations,
           operationTypeCounts
@@ -48,10 +50,11 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
       }
 
       // Combine the entity count with operation type counts.
+      let entityNames = Array.from(result.getGroup(group).keys());
       let children = [
         {
           name: "entities",
-          value: this.result.getGroup(group).size,
+          value: entityNames.filter((name) => !name.match(/\[.+\]/)).length,
           children: [],
         },
       ];
@@ -69,7 +72,6 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
       // Add the group to the stats.
       stats.push({
         name: group,
-        value: this.result.getGroup(group).size,
         children,
       });
     }
