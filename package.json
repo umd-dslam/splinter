@@ -1,7 +1,8 @@
 {
   "name": "clue",
-  "displayName": "clue",
+  "displayName": "Clue",
   "description": "",
+  "publisher": "ctring",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.77.0"
@@ -152,17 +153,17 @@
     "@types/node": "16.x",
     "@types/pluralize": "^0.0.29",
     "@types/vscode": "^1.77.0",
-    "@typescript-eslint/eslint-plugin": "^5.56.0",
-    "@typescript-eslint/parser": "^5.56.0",
     "@vscode/test-electron": "^2.3.0",
-    "eslint": "^8.36.0",
-    "eslint-plugin-typeorm-analyzer": "file:../eslint-plugin-typeorm-analyzer",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.56.0",
+    "@typescript-eslint/parser": "^5.56.0",
     "clipboardy": "^3.0.0",
+    "eslint": "^8.36.0",
+    "eslint-plugin-typeorm-analyzer": "^1.0.1",
     "pluralize": "^8.0.0"
   }
 }
