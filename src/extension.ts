@@ -80,10 +80,8 @@ export function activate(context: vscode.ExtensionContext) {
   /**********************************************************/
 
   const analyzer = new TypeORMAnalyzer(
-    path.join(
-      rootPath,
-      vscode.workspace.getConfiguration("clue").get("tsconfigRootDir", "")
-    )
+    rootPath,
+    vscode.workspace.getConfiguration("clue").get("tsconfigRootDir", "")
   );
 
   let analyzeResult = AnalyzeResult.getInstance();

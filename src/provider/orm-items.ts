@@ -44,7 +44,7 @@ export class ORMItemProvider
     let contextValue: string[] = [];
 
     if (item.inner.selection) {
-      description.push(`line: ${item.inner.selection.fromLine}`);
+      description.push(`line: ${item.inner.selection.fromLine + 1}`);
     }
 
     if (item.type === "entity") {
@@ -92,7 +92,10 @@ export class ORMItemProvider
         title: "Show",
         arguments: [
           new vscode.Location(
-            vscode.Uri.file(item.inner.selection.filePath),
+            vscode.Uri.joinPath(
+              vscode.Uri.parse(this.rootPath),
+              item.inner.selection.filePath
+            ),
             new vscode.Range(
               item.inner.selection.fromLine,
               item.inner.selection.fromColumn,

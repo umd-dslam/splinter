@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { ESLint } from "eslint";
 import { AnalyzeResult, AnalyzeResultGroup, Selection } from "../model";
 import { Analyzer } from "./base";
@@ -9,10 +10,15 @@ import {
 } from "eslint-plugin-typeorm-analyzer/messages";
 
 export class TypeORMAnalyzer implements Analyzer {
+  private rootPath: string;
   private eslint: ESLint;
   private unresolvedMessages: [JsonMessage, Selection][] = [];
 
-  constructor(tsconfigRootDir: string) {
+  constructor(rootPath: string, tsconfigRootDir: string) {
+    this.rootPath = rootPath;
+    if (!path.isAbsolute(tsconfigRootDir)) {
+      tsconfigRootDir = path.join(rootPath, tsconfigRootDir);
+    }
     this.eslint = new ESLint({
       useEslintrc: false,
       resolvePluginsRelativeTo: __dirname + "/../../node_modules",
@@ -56,7 +62,7 @@ export class TypeORMAnalyzer implements Analyzer {
 
           let parsed: JsonMessage = JSON.parse(message.message);
           let selection = {
-            filePath: result.filePath,
+            filePath: path.relative(this.rootPath, result.filePath),
             fromLine: message.line - 1,
             fromColumn: message.column - 1,
             toLine: (message.endLine || message.line) - 1,
