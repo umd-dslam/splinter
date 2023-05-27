@@ -23,6 +23,25 @@ type DragAndDropDataType = {
   items: { name: string; parentName: string; idInParent: number }[];
 };
 
+function computeCDA(item: ORMItem): number | null {
+  if (item.type !== "entity") {
+    return null;
+  }
+  let entity = item.inner as Entity;
+  let cda: Set<string> = new Set();
+  for (const operation of entity.operations) {
+    if (operation.arguments.length > 0) {
+      cda.add(
+        operation.arguments
+          .map((arg) => arg.name)
+          .sort()
+          .join(",")
+      );
+    }
+  }
+  return cda.size;
+}
+
 export class ORMItemProvider
   implements
     vscode.TreeDataProvider<ORMItem>,
@@ -49,30 +68,41 @@ export class ORMItemProvider
 
     if (item.type === "entity") {
       let inner = item.inner as Entity;
+      // Determine tree state
       treeItem.collapsibleState =
         inner.operations.length > 0
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None;
+      // Compute description
       description.push(
         ...Object.entries(groupOperationTypes(inner.operations))
           .map(([type, ids]) => [type, ids.size])
           .sort((a, b) => (a[0] < b[0] ? -1 : 1))
           .map(([type, count]) => `${type}: ${count}`)
       );
+      description.push(`cda: ${computeCDA(item)}`);
+      // Select icon
       treeItem.iconPath = new vscode.ThemeIcon("table");
+      // Add context values
       if (inner.isCustom) {
         contextValue.push("customEntity");
       }
     } else if (item.type === "operation") {
       let inner = item.inner as Operation;
-      description.push(inner.type);
+
+      // Determine tree state
       treeItem.collapsibleState =
         inner.arguments.length > 0
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None;
+      // Compute description
+      description.push(inner.type);
+      // Select icon
       treeItem.iconPath = new vscode.ThemeIcon("symbol-method");
     } else if (item.type === "argument") {
+      // Determine tree state
       treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None;
+      // Select icon
       treeItem.iconPath = new vscode.ThemeIcon("symbol-variable");
     }
 
