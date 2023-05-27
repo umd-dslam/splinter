@@ -1,21 +1,6 @@
 import { randomUUID } from "crypto";
 import * as vscode from "vscode";
 
-export type Selection = {
-  filePath: string;
-  fromLine: number;
-  fromColumn: number;
-  toLine: number;
-  toColumn: number;
-};
-
-export type Operation = {
-  selection: Selection;
-  name: string;
-  type: "read" | "write" | "other" | "transaction";
-  note: string;
-};
-
 export type Entity = {
   selection?: Selection;
   name: string;
@@ -24,9 +9,27 @@ export type Entity = {
   isCustom: boolean;
 };
 
-export function isEntity(item: Entity | Operation): item is Entity {
-  return (item as Entity).operations !== undefined;
-}
+export type Operation = {
+  selection?: Selection;
+  name: string;
+  arguments: Argument[];
+  type: "read" | "write" | "other" | "transaction";
+  note: string;
+};
+
+export type Argument = {
+  selection?: Selection;
+  name: string;
+  note: string;
+};
+
+export type Selection = {
+  filePath: string;
+  fromLine: number;
+  fromColumn: number;
+  toLine: number;
+  toColumn: number;
+};
 
 export enum AnalyzeResultGroup {
   recognized = "Recognized",

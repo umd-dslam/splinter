@@ -134,6 +134,17 @@ export class TypeORMAnalyzer implements Analyzer {
           name: msg.name,
           type: msg.methodType,
           note: "",
+          arguments: msg.attributes.map((attr) => ({
+            selection: {
+              filePath: selection.filePath,
+              fromLine: attr.start_line - 1,
+              fromColumn: attr.start_column,
+              toLine: attr.end_line - 1,
+              toColumn: attr.end_column,
+            },
+            name: attr.name,
+            note: "",
+          })),
         };
 
         // Find a recognized entity
@@ -221,6 +232,7 @@ export class TypeORMAnalyzer implements Analyzer {
           name: msg.name,
           type: msg.methodType,
           note: "",
+          arguments: [],
         });
       }
     }

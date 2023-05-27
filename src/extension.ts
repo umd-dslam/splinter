@@ -1,11 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import {
-  EntityOperation,
-  EntityOperationProvider,
-} from "./provider/entity-operation";
+import { ORMItem, ORMItemProvider } from "./provider/orm-items";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
-import { AnalyzeResult, AnalyzeResultGroup, isEntity } from "./model";
+import { AnalyzeResult, AnalyzeResultGroup } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
 
@@ -97,7 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider("statistics", statisticsProvider)
   );
 
-  const recognizedProvider = new EntityOperationProvider(
+  const recognizedProvider = new ORMItemProvider(
     rootPath,
     AnalyzeResultGroup.recognized
   );
@@ -109,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  const unknownProvider = new EntityOperationProvider(
+  const unknownProvider = new ORMItemProvider(
     rootPath,
     AnalyzeResultGroup.unknown
   );
@@ -182,22 +179,19 @@ export function activate(context: vscode.ExtensionContext) {
       });
   });
 
-  vscode.commands.registerCommand(
-    "clue.entity.remove",
-    (item: EntityOperation) => {
-      if (!isEntity(item.inner)) {
-        return;
-      }
-
-      const entities = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
-      let entity = entities.get(item.inner.name);
-      if (entity && entity.isCustom) {
-        entities.delete(item.inner.name);
-      }
-
-      analyzeResult.saveToStorage(rootPath);
+  vscode.commands.registerCommand("clue.entity.remove", (item: ORMItem) => {
+    if (item.type !== "entity") {
+      return;
     }
-  );
+
+    const entities = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
+    let entity = entities.get(item.inner.name);
+    if (entity && entity.isCustom) {
+      entities.delete(item.inner.name);
+    }
+
+    analyzeResult.saveToStorage(rootPath);
+  });
 
   vscode.commands.registerCommand("clue.item.show", (loc: vscode.Location) => {
     vscode.workspace.openTextDocument(loc.uri).then((doc) => {
@@ -210,7 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "clue.item.addNote",
-    (item: EntityOperation, allItems: EntityOperation[]) => {
+    (item: ORMItem, allItems: ORMItem[]) => {
       if (!allItems) {
         allItems = [item];
       }
@@ -241,7 +235,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "clue.item.clearNote",
-    (item: EntityOperation, allItems: EntityOperation[]) => {
+    (item: ORMItem, allItems: ORMItem[]) => {
       if (!allItems) {
         allItems = [item];
       }
@@ -254,7 +248,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "clue.item.copy",
-    (_: EntityOperation, allItems: EntityOperation[]) => {
+    (_: ORMItem, allItems: ORMItem[]) => {
       import("clipboardy").then((clipboardy) => {
         let combined = allItems.map((i) => i.inner.name).join("\n");
         clipboardy.default.writeSync(combined);

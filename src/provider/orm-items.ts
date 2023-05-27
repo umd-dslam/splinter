@@ -4,15 +4,16 @@ import {
   AnalyzeResultGroup,
   Entity,
   Operation,
+  Argument,
   groupOperationTypes,
-  isEntity,
 } from "../model";
 import * as path from "path";
 import * as pluralize from "pluralize";
 
-export type EntityOperation = {
-  inner: Entity | Operation;
-  parent: Entity;
+export type ORMItem = {
+  type: "entity" | "operation" | "argument";
+  inner: Entity | Operation | Argument;
+  parent?: ORMItem;
   idInParent: number;
   resultGroup: AnalyzeResultGroup;
 };
@@ -22,33 +23,33 @@ type DragAndDropDataType = {
   items: { name: string; parentName: string; idInParent: number }[];
 };
 
-export class EntityOperationProvider
+export class ORMItemProvider
   implements
-    vscode.TreeDataProvider<EntityOperation>,
-    vscode.TreeDragAndDropController<EntityOperation>
+    vscode.TreeDataProvider<ORMItem>,
+    vscode.TreeDragAndDropController<ORMItem>
 {
   constructor(
     private rootPath: string,
     private resultGroup: AnalyzeResultGroup
   ) {}
 
-  getTreeItem(element: EntityOperation): vscode.TreeItem {
-    let inner = element.inner;
-    let relativePath = inner.selection
-      ? path.relative(this.rootPath, inner.selection.filePath)
+  getTreeItem(item: ORMItem): vscode.TreeItem {
+    let relativePath = item.inner.selection
+      ? path.relative(this.rootPath, item.inner.selection.filePath)
       : "";
-    let item = new vscode.TreeItem(inner.name);
+    let treeItem = new vscode.TreeItem(item.inner.name);
 
     let description: string[] = [];
     let tooltip: string[] = [relativePath];
     let contextValue: string[] = [];
 
-    if (inner.selection) {
-      description.push(`line: ${inner.selection.fromLine}`);
+    if (item.inner.selection) {
+      description.push(`line: ${item.inner.selection.fromLine}`);
     }
 
-    if (isEntity(inner)) {
-      item.collapsibleState =
+    if (item.type === "entity") {
+      let inner = item.inner as Entity;
+      treeItem.collapsibleState =
         inner.operations.length > 0
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None;
@@ -58,56 +59,75 @@ export class EntityOperationProvider
           .sort((a, b) => (a[0] < b[0] ? -1 : 1))
           .map(([type, count]) => `${type}: ${count}`)
       );
-      item.iconPath = new vscode.ThemeIcon("table");
+      treeItem.iconPath = new vscode.ThemeIcon("table");
       if (inner.isCustom) {
         contextValue.push("customEntity");
       }
-    } else {
+    } else if (item.type === "operation") {
+      let inner = item.inner as Operation;
       description.push(inner.type);
-      item.collapsibleState = vscode.TreeItemCollapsibleState.None;
-      item.iconPath = new vscode.ThemeIcon("symbol-method");
+      treeItem.collapsibleState =
+        inner.arguments.length > 0
+          ? vscode.TreeItemCollapsibleState.Collapsed
+          : vscode.TreeItemCollapsibleState.None;
+      treeItem.iconPath = new vscode.ThemeIcon("symbol-method");
+    } else if (item.type === "argument") {
+      treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None;
+      treeItem.iconPath = new vscode.ThemeIcon("symbol-variable");
     }
 
-    if (inner.note) {
-      description.push(`note: ${inner.note}`);
-      tooltip.push(inner.note);
+    if (item.inner.note) {
+      description.push(`note: ${item.inner.note}`);
+      tooltip.push(item.inner.note);
       contextValue.push("hasNote");
     }
 
-    item.description = description.join(" | ");
-    item.tooltip = tooltip.join("\n");
-    item.contextValue = contextValue.join(" ");
+    treeItem.description = description.join(" | ");
+    treeItem.tooltip = tooltip.join("\n");
+    treeItem.contextValue = contextValue.join(" ");
 
-    if (inner.selection) {
-      item.command = {
+    if (item.inner.selection) {
+      treeItem.command = {
         command: "clue.item.show",
         title: "Show",
         arguments: [
           new vscode.Location(
-            vscode.Uri.file(inner.selection.filePath),
+            vscode.Uri.file(item.inner.selection.filePath),
             new vscode.Range(
-              inner.selection.fromLine,
-              inner.selection.fromColumn,
-              inner.selection.toLine,
-              inner.selection.toColumn
+              item.inner.selection.fromLine,
+              item.inner.selection.fromColumn,
+              item.inner.selection.toLine,
+              item.inner.selection.toColumn
             )
           ),
         ],
       };
     }
 
-    return item;
+    return treeItem;
   }
 
-  async getChildren(element?: EntityOperation): Promise<EntityOperation[]> {
-    if (element) {
-      const entity = element.inner;
-      if (isEntity(entity)) {
-        return entity.operations
+  async getChildren(item?: ORMItem): Promise<ORMItem[]> {
+    if (item) {
+      if (item.type === "entity") {
+        let inner = item.inner as Entity;
+        return inner.operations
           .sort((a, b) => (a.type < b.type ? -1 : 1))
           .map((operation, index) => ({
+            type: "operation",
             inner: operation,
-            parent: entity,
+            parent: item,
+            idInParent: index,
+            resultGroup: this.resultGroup,
+          }));
+      } else if (item.type === "operation") {
+        let inner = item.inner as Operation;
+        return inner.arguments
+          .sort((a, b) => (a.name < b.name ? -1 : 1))
+          .map((argument, index) => ({
+            type: "argument",
+            inner: argument,
+            parent: item,
             idInParent: index,
             resultGroup: this.resultGroup,
           }));
@@ -120,21 +140,21 @@ export class EntityOperationProvider
     return Array.from(entities.values())
       .sort((a, b) => (a.name < b.name ? -1 : 1))
       .map((entity) => ({
+        type: "entity",
         inner: entity,
-        parent: entity,
         idInParent: -1,
         resultGroup: this.resultGroup,
       }));
   }
 
   private _onDidChangeTreeData: vscode.EventEmitter<
-    EntityOperation | undefined | null | void
-  > = new vscode.EventEmitter<EntityOperation | undefined | null | void>();
+    ORMItem | undefined | null | void
+  > = new vscode.EventEmitter<ORMItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<
-    EntityOperation | undefined | null | void
+    ORMItem | undefined | null | void
   > = this._onDidChangeTreeData.event;
 
-  updateItem(item: EntityOperation): void {
+  updateItem(item: ORMItem): void {
     this._onDidChangeTreeData.fire(item);
   }
 
@@ -146,17 +166,18 @@ export class EntityOperationProvider
   dragMimeTypes = ["application/vnd.code.tree.entity-operation"];
 
   async handleDrag(
-    items: EntityOperation[],
+    items: ORMItem[],
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
     const data: DragAndDropDataType = {
       resultGroup: this.resultGroup,
       items: items
-        .filter((item) => !isEntity(item.inner))
+        // Only allow operations to be dragged
+        .filter((item) => item.type === "operation")
         .map((item) => ({
           name: item.inner.name,
-          parentName: item.parent.name,
+          parentName: item.parent!.inner.name,
           idInParent: item.idInParent,
         })),
     };
@@ -168,12 +189,14 @@ export class EntityOperationProvider
   }
 
   async handleDrop(
-    target: EntityOperation | undefined,
+    target: ORMItem | undefined,
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
     let data = dataTransfer.get("application/vnd.code.tree.entity-operation");
-    if (!data || !target || !isEntity(target.inner)) {
+
+    // Can only drop on entities
+    if (!data || !target || target.type !== "entity") {
       return;
     }
 
@@ -182,6 +205,7 @@ export class EntityOperationProvider
       return;
     }
 
+    // Show confirmation dialog
     let items = parsed.items;
     let detail = items
       .map((item) => `${item.name} [${item.parentName}]`)
@@ -194,6 +218,7 @@ export class EntityOperationProvider
       "Move"
     );
 
+    // Cancel if user didn't confirm
     if (confirm !== "Move") {
       return;
     }
@@ -201,16 +226,21 @@ export class EntityOperationProvider
     let analyzeResult = AnalyzeResult.getInstance();
     let srcGroup = analyzeResult.getGroup(parsed.resultGroup);
     let deletedItems: [number, Entity][] = [];
+    let targetEntity = target.inner as Entity;
     for (const movedItem of items) {
+      // Look up the source entity
       let srcEntity = srcGroup.get(movedItem.parentName);
       if (!srcEntity || srcEntity === target.inner) {
         continue;
       }
+      // Get the operation
       let operation = srcEntity.operations[movedItem.idInParent];
       if (!operation) {
         continue;
       }
-      target.inner.operations.push(operation);
+      // Push the operation to the target entity
+      targetEntity.operations.push(operation);
+      // Save the index and source entity for deletion later
       deletedItems.push([movedItem.idInParent, srcEntity]);
     }
 
