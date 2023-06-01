@@ -3,11 +3,11 @@ import * as path from "path";
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { AnalyzeResult, AnalyzeResultGroup } from "./model";
-import { StatisticsProvider } from "./provider/statistics";
+import { InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
 
-function setRepositoryInfo(rootPath: string) {
+async function setRepositoryInfo(rootPath: string) {
   const gitExtension = vscode.extensions.getExtension("vscode.git") as
     | vscode.Extension<GitExtension>
     | undefined;
@@ -17,18 +17,18 @@ function setRepositoryInfo(rootPath: string) {
   }
   const api = gitExtension.exports.getAPI(1);
 
-  api.openRepository(vscode.Uri.file(rootPath)).then(async (repo) => {
-    if (repo) {
-      const head = repo.state.HEAD;
-      if (head) {
-        const hash = head.commit ?? "";
-        const url = repo.state.remotes[0].fetchUrl ?? "";
-        const result = AnalyzeResult.getInstance();
-        result.setRepository({ url, hash });
-        await result.saveToStorage(rootPath);
-      }
-    }
-  });
+  const repo = await api.openRepository(vscode.Uri.file(rootPath));
+  if (!repo) {
+    return;
+  }
+  const head = repo.state.HEAD;
+  if (!head) {
+    return;
+  }
+  const hash = head.commit ?? "";
+  const url = repo.state.remotes[0].fetchUrl ?? "";
+  const result = AnalyzeResult.getInstance();
+  result.setRepository({ url, hash });
 }
 
 function runAnalyzer(analyzer: Analyzer, rootPath: string) {
@@ -49,6 +49,8 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
     async (progress, cancellation) => {
       if (!(await analyzeResult.loadFromStorage(rootPath))) {
         // If the result is not found, start a new analysis
+        await setRepositoryInfo(rootPath);
+
         const files = await vscode.workspace.findFiles(
           config.get("includeFiles")!.toString(),
           config.get("excludeFiles")!.toString()
@@ -112,11 +114,9 @@ export function activate(context: vscode.ExtensionContext) {
   let analyzeResult = AnalyzeResult.getInstance();
   analyzeResult.setFileName(analyzer.getSaveFileName());
 
-  setRepositoryInfo(rootPath);
-
-  const statisticsProvider = new StatisticsProvider();
+  const infoProvider = new InfoProvider();
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("statistics", statisticsProvider)
+    vscode.window.registerTreeDataProvider("info", infoProvider)
   );
 
   const recognizedProvider = new ORMItemProvider(
@@ -144,7 +144,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   analyzeResult.setRefreshFn(() => {
-    statisticsProvider.refresh();
+    infoProvider.refresh();
     recognizedProvider.refresh();
     unknownProvider.refresh();
   });

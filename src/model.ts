@@ -45,7 +45,7 @@ export class AnalyzeResult {
   private static _instance: AnalyzeResult;
 
   private fileName: string = "analyze-result.json";
-  private repository: Repository;
+  private repository?: Repository;
   private group: Map<string, Map<string, Entity>>;
   private refreshFn: () => void = () => {};
 
@@ -54,7 +54,6 @@ export class AnalyzeResult {
   }
 
   private constructor() {
-    this.repository = { url: "", hash: "" };
     this.group = new Map([
       [AnalyzeResultGroup.recognized, new Map<string, Entity>()],
       [AnalyzeResultGroup.unknown, new Map<string, Entity>()],
@@ -66,20 +65,15 @@ export class AnalyzeResult {
   }
 
   setRepository(repository?: Repository) {
-    console.log(repository);
-    this.repository = repository ?? { url: "", hash: "" };
+    this.repository = repository;
+  }
+
+  getRepository(): Repository | undefined {
+    return this.repository;
   }
 
   setFileName(fileName: string) {
     this.fileName = fileName;
-  }
-
-  extend(result: AnalyzeResult) {
-    for (const [groupId, value] of result.group) {
-      for (const item of value) {
-        this.group.get(groupId)!.set(...item);
-      }
-    }
   }
 
   clear() {
@@ -98,8 +92,7 @@ export class AnalyzeResult {
     try {
       let data = await vscode.workspace.fs.readFile(resultPath);
       let newResult: AnalyzeResult = JSON.parse(data.toString(), reviver);
-      this.clear();
-      this.extend(newResult);
+      Object.assign(this, newResult);
       this.refreshFn();
     } catch (e) {
       return false;

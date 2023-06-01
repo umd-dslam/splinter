@@ -5,16 +5,16 @@ import {
   groupOperationTypes,
 } from "../model";
 
-type Statistics = {
+type Info = {
   name: string;
-  value?: number;
-  children: Statistics[];
+  value?: string;
+  children: Info[];
 };
 
-export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
+export class InfoProvider implements vscode.TreeDataProvider<Info> {
   constructor() {}
 
-  getTreeItem(element: Statistics): vscode.TreeItem {
+  getTreeItem(element: Info): vscode.TreeItem {
     var item = new vscode.TreeItem(
       element.name,
       element.children.length > 0
@@ -27,14 +27,37 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
     return item;
   }
 
-  async getChildren(element?: Statistics): Promise<Statistics[]> {
+  async getChildren(element?: Info): Promise<Info[]> {
     if (element) {
       return element.children;
     }
-
     let result = AnalyzeResult.getInstance();
+    return [
+      {
+        name: "Repository",
+        children: [
+          {
+            name: "url",
+            value: result.getRepository()?.url ?? "",
+            children: [],
+          },
+          {
+            name: "hash",
+            value: result.getRepository()?.hash ?? "",
+            children: [],
+          },
+        ],
+      },
+      {
+        name: "Statistics",
+        children: this.getStats(),
+      },
+    ];
+  }
 
-    let stats: Statistics[] = [];
+  private getStats(): Info[] {
+    let stats: Info[] = [];
+    let result = AnalyzeResult.getInstance();
 
     for (const group of [
       AnalyzeResultGroup.recognized,
@@ -54,7 +77,9 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
       let children = [
         {
           name: "entities",
-          value: entityNames.filter((name) => !name.match(/\[.+\]/)).length,
+          value: entityNames
+            .filter((name) => !name.match(/\[.+\]/))
+            .length.toString(),
           children: [],
         },
       ];
@@ -63,7 +88,7 @@ export class StatisticsProvider implements vscode.TreeDataProvider<Statistics> {
         ...Object.entries(operationTypeCounts).map(([type, ids]) => {
           return {
             name: type,
-            value: ids.size,
+            value: ids.size.toString(),
             children: [],
           };
         })
