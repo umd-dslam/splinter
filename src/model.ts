@@ -36,11 +36,17 @@ export enum AnalyzeResultGroup {
   unknown = "Unknown",
 }
 
+type Repository = {
+  url: string;
+  hash: string;
+};
+
 export class AnalyzeResult {
   private static _instance: AnalyzeResult;
 
-  private group: Map<string, Map<string, Entity>>;
   private fileName: string = "analyze-result.json";
+  private repository: Repository;
+  private group: Map<string, Map<string, Entity>>;
   private refreshFn: () => void = () => {};
 
   public static getInstance(): AnalyzeResult {
@@ -48,6 +54,7 @@ export class AnalyzeResult {
   }
 
   private constructor() {
+    this.repository = { url: "", hash: "" };
     this.group = new Map([
       [AnalyzeResultGroup.recognized, new Map<string, Entity>()],
       [AnalyzeResultGroup.unknown, new Map<string, Entity>()],
@@ -56,6 +63,11 @@ export class AnalyzeResult {
 
   getGroup(group: AnalyzeResultGroup): Map<string, Entity> {
     return this.group.get(group)!;
+  }
+
+  setRepository(repository?: Repository) {
+    console.log(repository);
+    this.repository = repository ?? { url: "", hash: "" };
   }
 
   setFileName(fileName: string) {

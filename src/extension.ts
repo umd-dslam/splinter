@@ -5,6 +5,31 @@ import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { AnalyzeResult, AnalyzeResultGroup } from "./model";
 import { StatisticsProvider } from "./provider/statistics";
 import { Analyzer } from "./analyzer/base";
+import { GitExtension } from "./@types/git";
+
+function setRepositoryInfo(rootPath: string) {
+  const gitExtension = vscode.extensions.getExtension("vscode.git") as
+    | vscode.Extension<GitExtension>
+    | undefined;
+
+  if (!gitExtension) {
+    return undefined;
+  }
+  const api = gitExtension.exports.getAPI(1);
+
+  api.openRepository(vscode.Uri.file(rootPath)).then(async (repo) => {
+    if (repo) {
+      const head = repo.state.HEAD;
+      if (head) {
+        const hash = head.commit ?? "";
+        const url = repo.state.remotes[0].fetchUrl ?? "";
+        const result = AnalyzeResult.getInstance();
+        result.setRepository({ url, hash });
+        await result.saveToStorage(rootPath);
+      }
+    }
+  });
+}
 
 function runAnalyzer(analyzer: Analyzer, rootPath: string) {
   const config = vscode.workspace.getConfiguration("clue");
@@ -86,6 +111,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   let analyzeResult = AnalyzeResult.getInstance();
   analyzeResult.setFileName(analyzer.getSaveFileName());
+
+  setRepositoryInfo(rootPath);
 
   const statisticsProvider = new StatisticsProvider();
   context.subscriptions.push(
