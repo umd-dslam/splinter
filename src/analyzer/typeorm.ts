@@ -83,7 +83,7 @@ export class TypeORMAnalyzer implements Analyzer {
   ) {
     let entities = result.getGroup(AnalyzeResultGroup.recognized);
     if (entities.size === 0) {
-      // Special entity for the Entity Manager API (https://typeorm.io/entity-manager-api)
+      // Special entity for Entity Manager API (https://typeorm.io/entity-manager-api)
       entities.set("[EntityManager]", {
         selection: undefined,
         name: "[EntityManager]",
@@ -91,7 +91,7 @@ export class TypeORMAnalyzer implements Analyzer {
         note: "",
         isCustom: false,
       });
-      // Special entity for the QueryRunner
+      // Special entity for QueryRunner
       entities.set("[QueryRunner]", {
         selection: undefined,
         name: "[QueryRunner]",
@@ -99,10 +99,18 @@ export class TypeORMAnalyzer implements Analyzer {
         note: "",
         isCustom: false,
       });
-      // Special entity for the Connection
+      // Special entity for Connection
       entities.set("[Connection]", {
         selection: undefined,
         name: "[Connection]",
+        operations: [],
+        note: "",
+        isCustom: false,
+      });
+      // Special entity for DataSource
+      entities.set("[DataSource]", {
+        selection: undefined,
+        name: "[DataSource]",
         operations: [],
         note: "",
         isCustom: false,
@@ -156,21 +164,27 @@ export class TypeORMAnalyzer implements Analyzer {
         // Find a recognized entity
         let found = false;
         for (const calleeType of msg.callee) {
-          // Special case for the Entity Manager API
+          // Special case for Entity Manager API
           if (calleeType === "EntityManager") {
             entities.get("[EntityManager]")!.operations.push(operation);
             found = true;
             break;
           }
-          // Special entity for the QueryRunner
+          // Special entity for QueryRunner
           if (calleeType === "QueryRunner") {
             entities.get("[QueryRunner]")!.operations.push(operation);
             found = true;
             break;
           }
-          // Special entity for the Connection
+          // Special entity for Connection
           if (calleeType === "Connection") {
             entities.get("[Connection]")!.operations.push(operation);
+            found = true;
+            break;
+          }
+          // Special entity for DataSource
+          if (calleeType === "DataSource") {
+            entities.get("[DataSource]")!.operations.push(operation);
             found = true;
             break;
           }
