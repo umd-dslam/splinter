@@ -145,7 +145,7 @@ export class TypeORMAnalyzer implements Analyzer {
       if (MethodMessage.validate(msg)) {
         const operation = {
           selection,
-          name: msg.name,
+          name: msg.callee + "." + msg.name,
           type: msg.methodType,
           note: "",
           arguments: msg.attributes.map((attr) => ({
@@ -163,7 +163,7 @@ export class TypeORMAnalyzer implements Analyzer {
 
         // Find a recognized entity
         let found = false;
-        for (const calleeType of msg.callee) {
+        for (const calleeType of msg.calleeTypes) {
           // Special case for Entity Manager API
           if (calleeType === "EntityManager") {
             entities.get("[EntityManager]")!.operations.push(operation);
@@ -236,23 +236,33 @@ export class TypeORMAnalyzer implements Analyzer {
     let unknowns = result.getGroup(AnalyzeResultGroup.unknown);
     for (const [msg, selection] of this.unresolvedMessages) {
       if (MethodMessage.validate(msg)) {
-        const callee = msg.callee[0];
-        if (!unknowns.has(callee)) {
-          unknowns.set(callee, {
+        const calleeType = msg.calleeTypes[0];
+        if (!unknowns.has(calleeType)) {
+          unknowns.set(calleeType, {
             selection: undefined,
-            name: callee,
+            name: calleeType,
             operations: [],
             note: "",
             isCustom: false,
           });
         }
 
-        unknowns.get(callee)!.operations.push({
+        unknowns.get(calleeType)!.operations.push({
           selection,
-          name: msg.name,
+          name: msg.callee + "." + msg.name,
           type: msg.methodType,
           note: "",
-          arguments: [],
+          arguments: msg.attributes.map((attr) => ({
+            selection: {
+              filePath: selection.filePath,
+              fromLine: attr.start_line - 1,
+              fromColumn: attr.start_column,
+              toLine: attr.end_line - 1,
+              toColumn: attr.end_column,
+            },
+            name: attr.name,
+            note: "",
+          })),
         });
       }
     }
