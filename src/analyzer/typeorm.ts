@@ -145,7 +145,7 @@ export class TypeORMAnalyzer implements Analyzer {
       if (MethodMessage.validate(msg)) {
         const operation = {
           selection,
-          name: msg.callee + "." + msg.name,
+          name: msg.object + "." + msg.name,
           type: msg.methodType,
           note: "",
           arguments: msg.attributes.map((attr) => ({
@@ -163,7 +163,7 @@ export class TypeORMAnalyzer implements Analyzer {
 
         // Find a recognized entity
         let found = false;
-        for (const calleeType of msg.calleeTypes) {
+        for (const calleeType of msg.objectTypes) {
           // Special case for Entity Manager API
           if (calleeType === "EntityManager") {
             entities.get("[EntityManager]")!.operations.push(operation);
@@ -236,7 +236,7 @@ export class TypeORMAnalyzer implements Analyzer {
     let unknowns = result.getGroup(AnalyzeResultGroup.unknown);
     for (const [msg, selection] of this.unresolvedMessages) {
       if (MethodMessage.validate(msg)) {
-        const calleeType = msg.calleeTypes[0];
+        const calleeType = msg.objectTypes[0];
         if (!unknowns.has(calleeType)) {
           unknowns.set(calleeType, {
             selection: undefined,
@@ -249,7 +249,7 @@ export class TypeORMAnalyzer implements Analyzer {
 
         unknowns.get(calleeType)!.operations.push({
           selection,
-          name: msg.callee + "." + msg.name,
+          name: msg.object + "." + msg.name,
           type: msg.methodType,
           note: "",
           arguments: msg.attributes.map((attr) => ({

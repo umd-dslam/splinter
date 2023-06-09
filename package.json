@@ -3,7 +3,7 @@
   "displayName": "Clue",
   "description": "",
   "publisher": "ctring",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.77.0"
   },
@@ -163,7 +163,7 @@
     "@typescript-eslint/parser": "^5.56.0",
     "clipboardy": "^3.0.0",
     "eslint": "^8.36.0",
-    "eslint-plugin-typeorm-analyzer": "^1.0.5",
+    "eslint-plugin-typeorm-analyzer": "^1.0.6",
     "pluralize": "^8.0.0"
   },
   "extensionDependencies": [
