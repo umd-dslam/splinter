@@ -163,7 +163,7 @@
     "@typescript-eslint/parser": "^5.56.0",
     "clipboardy": "^3.0.0",
     "eslint": "^8.36.0",
-    "eslint-plugin-typeorm-analyzer": "^1.0.3",
+    "eslint-plugin-typeorm-analyzer": "^1.0.5",
     "pluralize": "^8.0.0"
   },
   "extensionDependencies": [
