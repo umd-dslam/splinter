@@ -73,13 +73,13 @@ export class InfoProvider implements vscode.TreeDataProvider<Info> {
       }
 
       // Combine the entity count with operation type counts.
-      let entityNames = Array.from(result.getGroup(group).keys());
+      let entities = [...result.getGroup(group).values()].filter((entity) => {
+        return !entity.note.includes("!entity") && !entity.name.match(/\[.+\]/);
+      });
       let children = [
         {
           name: "entities",
-          value: entityNames
-            .filter((name) => !name.match(/\[.+\]/))
-            .length.toString(),
+          value: entities.length.toString(),
           children: [],
         },
       ];
