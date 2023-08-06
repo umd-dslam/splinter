@@ -213,6 +213,46 @@ export function activate(context: vscode.ExtensionContext) {
     analyzeResult.saveToStorage(rootPath);
   });
 
+  const moveEntity = async (
+    item: ORMItem,
+    from: AnalyzeResultGroup,
+    to: AnalyzeResultGroup
+  ) => {
+    if (item.type !== "entity") {
+      return;
+    }
+    const fromEntities = analyzeResult.getGroup(from);
+    const toEntities = analyzeResult.getGroup(to);
+    let entity = fromEntities.get(item.inner.name);
+    if (entity) {
+      fromEntities.delete(entity.name);
+      toEntities.set(entity.name, entity);
+    }
+    analyzeResult.saveToStorage(rootPath);
+  };
+
+  vscode.commands.registerCommand(
+    "clue.entity.moveToUnknown",
+    (item: ORMItem) => {
+      moveEntity(
+        item,
+        AnalyzeResultGroup.recognized,
+        AnalyzeResultGroup.unknown
+      );
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "clue.entity.moveToRecognized",
+    (item: ORMItem) => {
+      moveEntity(
+        item,
+        AnalyzeResultGroup.unknown,
+        AnalyzeResultGroup.recognized
+      );
+    }
+  );
+
   vscode.commands.registerCommand(
     "clue.operation.add",
     async (item: ORMItem) => {

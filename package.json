@@ -86,9 +86,19 @@
           "group": "1_note@2"
         },
         {
-          "command": "clue.operation.add",
+          "command": "clue.entity.moveToUnknown",
           "when": "view == recognized && viewItem =~ /entity/",
           "group": "2_edit@1"
+        },
+        {
+          "command": "clue.entity.moveToRecognized",
+          "when": "view == unknown && viewItem =~ /entity/",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "clue.operation.add",
+          "when": "view == recognized && viewItem =~ /entity/",
+          "group": "2_edit@2"
         },
         {
           "command": "clue.argument.add",
@@ -149,19 +159,24 @@
         "icon": "$(add)"
       },
       {
+        "command": "clue.entity.moveToUnknown",
+        "title": "Move to Unknown"
+      },
+      {
+        "command": "clue.entity.moveToRecognized",
+        "title": "Move to Recognized"
+      },
+      {
         "command": "clue.operation.add",
-        "title": "Add Operation",
-        "category": "Clue"
+        "title": "Add Operation"
       },
       {
         "command": "clue.argument.add",
-        "title": "Add Argument",
-        "category": "Clue"
+        "title": "Add Argument"
       },
       {
         "command": "clue.item.remove",
-        "title": "Remove",
-        "icon": "$(remove)"
+        "title": "Remove"
       },
       {
         "command": "clue.reanalyze",
