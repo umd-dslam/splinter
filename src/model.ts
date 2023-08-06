@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import * as vscode from "vscode";
+import * as path from "path";
 
 export type Entity = {
   selection?: Selection;
@@ -15,12 +16,14 @@ export type Operation = {
   arguments: Argument[];
   type: "read" | "write" | "other" | "transaction";
   note: string;
+  isCustom: boolean;
 };
 
 export type Argument = {
   selection?: Selection;
   name: string;
   note: string;
+  isCustom: boolean;
 };
 
 export type Selection = {
@@ -180,4 +183,21 @@ export function groupOperationTypes(
   }
 
   return result;
+}
+
+export function getCurrentSelection(rootPath: string): Selection | undefined {
+  const activeTextEditor = vscode.window.activeTextEditor;
+  let selection: Selection | undefined;
+  if (activeTextEditor) {
+    let filePath = path.relative(rootPath, activeTextEditor.document.uri.path);
+    let editorSelection = activeTextEditor.selection;
+    selection = {
+      filePath,
+      fromLine: editorSelection.start.line,
+      fromColumn: editorSelection.start.character,
+      toLine: editorSelection.end.line,
+      toColumn: editorSelection.end.character,
+    };
+  }
+  return selection;
 }

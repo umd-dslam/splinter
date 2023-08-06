@@ -5,7 +5,7 @@ import {
   groupOperationTypes,
 } from "../model";
 
-type Info = {
+export type Info = {
   name: string;
   value?: string;
   children: Info[];

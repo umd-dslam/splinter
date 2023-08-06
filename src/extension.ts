@@ -2,10 +2,11 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
-import { AnalyzeResult, AnalyzeResultGroup } from "./model";
-import { InfoProvider } from "./provider/info";
+import { AnalyzeResult, AnalyzeResultGroup, Operation } from "./model";
+import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
+import { Entity, Selection, getCurrentSelection } from "./model";
 
 async function setRepositoryInfo(rootPath: string) {
   const gitExtension = vscode.extensions.getExtension("vscode.git") as
@@ -116,7 +117,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   const infoProvider = new InfoProvider();
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("info", infoProvider)
+    vscode.window.createTreeView("info", {
+      treeDataProvider: infoProvider,
+      canSelectMany: true,
+    })
   );
 
   const recognizedProvider = new ORMItemProvider(
@@ -173,46 +177,151 @@ export function activate(context: vscode.ExtensionContext) {
     runAnalyzer(analyzer, rootPath);
   });
 
-  vscode.commands.registerCommand("clue.entity.add", () => {
-    vscode.window
-      .showInputBox({
-        placeHolder: "Enter the name of the entity to add",
-      })
-      .then((name) => {
-        if (name === undefined) {
-          return;
-        }
+  vscode.commands.registerCommand("clue.entity.add", async () => {
+    const name = await vscode.window.showInputBox({
+      placeHolder: "Enter the name of the entity to add",
+    });
 
-        let result = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
-
-        if (result.has(name)) {
-          vscode.window.showErrorMessage(
-            `Entity "${name}" already exists in the list of recognized entities`
-          );
-          return;
-        }
-
-        result.set(name, {
-          selection: undefined,
-          name,
-          operations: [],
-          note: "",
-          isCustom: true,
-        });
-
-        analyzeResult.saveToStorage(rootPath);
-      });
-  });
-
-  vscode.commands.registerCommand("clue.entity.remove", (item: ORMItem) => {
-    if (item.type !== "entity") {
+    if (name === undefined) {
       return;
     }
 
+    const setSelection = await vscode.window.showQuickPick(["no", "yes"], {
+      canPickMany: false,
+      ignoreFocusOut: true,
+      placeHolder: "Set the current selection for the entity?",
+    });
+
     const entities = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
-    let entity = entities.get(item.inner.name);
-    if (entity && entity.isCustom) {
-      entities.delete(item.inner.name);
+
+    if (entities.has(name)) {
+      vscode.window.showErrorMessage(
+        `Entity "${name}" already exists in the list of recognized entities`
+      );
+      return;
+    }
+
+    entities.set(name, {
+      selection:
+        setSelection === "yes" ? getCurrentSelection(rootPath) : undefined,
+      name,
+      operations: [],
+      note: "",
+      isCustom: true,
+    });
+
+    analyzeResult.saveToStorage(rootPath);
+  });
+
+  vscode.commands.registerCommand(
+    "clue.operation.add",
+    async (item: ORMItem) => {
+      if (item.type !== "entity") {
+        return;
+      }
+      const name = await vscode.window.showInputBox({
+        placeHolder: "Enter the name of the operation to add",
+      });
+
+      if (name === undefined) {
+        return;
+      }
+
+      const type = await vscode.window.showQuickPick(
+        ["read", "write", "other", "transaction"],
+        {
+          canPickMany: false,
+          ignoreFocusOut: true,
+          placeHolder: "Select the type of the operation",
+        }
+      );
+
+      if (type === undefined) {
+        return;
+      }
+
+      const setSelection = await vscode.window.showQuickPick(["no", "yes"], {
+        canPickMany: false,
+        ignoreFocusOut: true,
+        placeHolder: "Set the current selection for the operation?",
+      });
+
+      const entity = item.inner as Entity;
+      entity.operations.push({
+        selection:
+          setSelection === "yes" ? getCurrentSelection(rootPath) : undefined,
+        name,
+        arguments: [],
+        type: type as "read" | "write" | "other" | "transaction",
+        note: "",
+        isCustom: true,
+      });
+
+      analyzeResult.saveToStorage(rootPath);
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "clue.argument.add",
+    async (item: ORMItem) => {
+      if (item.type !== "operation") {
+        return;
+      }
+      const name = await vscode.window.showInputBox({
+        placeHolder: "Enter the name of the argument to add",
+      });
+
+      if (name === undefined) {
+        return;
+      }
+
+      const setSelection = await vscode.window.showQuickPick(["no", "yes"], {
+        canPickMany: false,
+        ignoreFocusOut: true,
+        placeHolder: "Set the current selection for the argument?",
+      });
+
+      const operation = item.inner as Operation;
+      operation.arguments.push({
+        selection:
+          setSelection === "yes" ? getCurrentSelection(rootPath) : undefined,
+        name,
+        note: "",
+        isCustom: true,
+      });
+
+      analyzeResult.saveToStorage(rootPath);
+    }
+  );
+
+  vscode.commands.registerCommand("clue.item.remove", (item: ORMItem) => {
+    if (!item.inner.isCustom) {
+      return;
+    }
+    const entities = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
+    switch (item.type) {
+      case "entity": {
+        const entity = entities.get(item.inner.name);
+        if (entity && entity.isCustom) {
+          entities.delete(item.inner.name);
+        }
+        break;
+      }
+      case "operation": {
+        const entity = entities.get(item.parent!.inner.name);
+        if (entity) {
+          entity.operations.splice(item.idInParent, 1);
+        }
+        break;
+      }
+      case "argument": {
+        const entity = entities.get(item.parent!.parent!.inner.name);
+        if (entity) {
+          const operation = entity.operations[item.parent!.idInParent];
+          operation.arguments.splice(item.idInParent, 1);
+        }
+        break;
+      }
     }
 
     analyzeResult.saveToStorage(rootPath);
@@ -229,15 +338,15 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "clue.item.addNote",
-    (item: ORMItem, allItems: ORMItem[]) => {
-      if (!allItems) {
-        allItems = [item];
+    (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
+      if (!selectedItems) {
+        selectedItems = [selectedItem];
       }
 
-      var placeHolder = `Enter a note for "${item.inner.name}"`;
-      var value = item.inner.note;
-      if (allItems.length > 1) {
-        placeHolder = `Enter a note for ${allItems.length} items`;
+      var placeHolder = `Enter a note for "${selectedItem.inner.name}"`;
+      var value = selectedItem.inner.note;
+      if (selectedItems.length > 1) {
+        placeHolder = `Enter a note for ${selectedItems.length} items`;
         value = "";
       }
 
@@ -250,7 +359,7 @@ export function activate(context: vscode.ExtensionContext) {
           if (!note) {
             return;
           }
-          for (let i of allItems) {
+          for (let i of selectedItems) {
             i.inner.note = note;
           }
           analyzeResult.saveToStorage(rootPath);
@@ -260,11 +369,11 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "clue.item.clearNote",
-    (item: ORMItem, allItems: ORMItem[]) => {
-      if (!allItems) {
-        allItems = [item];
+    (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
+      if (!selectedItems) {
+        selectedItems = [selectedItem];
       }
-      for (let i of allItems) {
+      for (let i of selectedItems) {
         i.inner.note = "";
       }
       analyzeResult.saveToStorage(rootPath);
@@ -273,9 +382,27 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "clue.item.copy",
-    (_: ORMItem, allItems: ORMItem[]) => {
+    (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
+      if (!selectedItems) {
+        selectedItems = [selectedItem];
+      }
       import("clipboardy").then((clipboardy) => {
-        let combined = allItems.map((i) => i.inner.name).join("\n");
+        let combined = selectedItems.map((i) => i.inner.name).join("\n");
+        clipboardy.default.writeSync(combined);
+      });
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "clue.info.copy",
+    (selectedInfoLine: Info, selectedInfoLines: Info[]) => {
+      if (!selectedInfoLines) {
+        selectedInfoLines = [selectedInfoLine];
+      }
+      import("clipboardy").then((clipboardy) => {
+        let combined = selectedInfoLines
+          .map((i) => `${i.name}: ${i.value}`)
+          .join("\n");
         clipboardy.default.writeSync(combined);
       });
     }

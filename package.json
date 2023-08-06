@@ -71,25 +71,44 @@
           "group": "inline"
         },
         {
-          "command": "clue.item.addNote",
-          "when": "view == recognized || view == unknown"
-        },
-        {
           "command": "clue.item.clearNote",
           "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/",
           "group": "inline"
         },
         {
+          "command": "clue.item.addNote",
+          "when": "view == recognized || view == unknown",
+          "group": "1_note@1"
+        },
+        {
           "command": "clue.item.clearNote",
-          "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/"
+          "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/",
+          "group": "1_note@2"
+        },
+        {
+          "command": "clue.operation.add",
+          "when": "view == recognized && viewItem =~ /entity/",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "clue.argument.add",
+          "when": "view == recognized && viewItem =~ /operation/",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "clue.item.remove",
+          "when": "view == recognized && viewItem =~ /custom/",
+          "group": "2_edit@2"
         },
         {
           "command": "clue.item.copy",
-          "when": "view == recognized || view == unknown"
+          "when": "view == recognized || view == unknown",
+          "group": "3_copy@1"
         },
         {
-          "command": "clue.entity.remove",
-          "when": "view == recognized && viewItem =~ /customEntity/"
+          "command": "clue.info.copy",
+          "when": "view == info",
+          "group": "3_copy@1"
         }
       ],
       "view/title": [
@@ -110,6 +129,10 @@
         "title": "Copy"
       },
       {
+        "command": "clue.info.copy",
+        "title": "Copy"
+      },
+      {
         "command": "clue.item.addNote",
         "title": "Add Note",
         "icon": "$(note)"
@@ -126,7 +149,17 @@
         "icon": "$(add)"
       },
       {
-        "command": "clue.entity.remove",
+        "command": "clue.operation.add",
+        "title": "Add Operation",
+        "category": "Clue"
+      },
+      {
+        "command": "clue.argument.add",
+        "title": "Add Argument",
+        "category": "Clue"
+      },
+      {
+        "command": "clue.item.remove",
         "title": "Remove",
         "icon": "$(remove)"
       },

@@ -158,7 +158,9 @@ export class TypeORMAnalyzer implements Analyzer {
             },
             name: attr.name,
             note: "",
+            isCustom: false,
           })),
+          isCustom: false,
         };
 
         // Find a recognized entity
@@ -262,7 +264,9 @@ export class TypeORMAnalyzer implements Analyzer {
             },
             name: attr.name,
             note: "",
+            isCustom: false,
           })),
+          isCustom: false,
         });
       }
     }

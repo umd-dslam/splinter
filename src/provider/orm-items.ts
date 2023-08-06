@@ -84,9 +84,7 @@ export class ORMItemProvider
       // Select icon
       treeItem.iconPath = new vscode.ThemeIcon("table");
       // Add context values
-      if (inner.isCustom) {
-        contextValue.push("customEntity");
-      }
+      contextValue.push("entity");
     } else if (item.type === "operation") {
       let inner = item.inner as Operation;
 
@@ -99,11 +97,19 @@ export class ORMItemProvider
       description.push(inner.type);
       // Select icon
       treeItem.iconPath = new vscode.ThemeIcon("symbol-method");
+      // Add context value
+      contextValue.push("operation");
     } else if (item.type === "argument") {
       // Determine tree state
       treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None;
       // Select icon
       treeItem.iconPath = new vscode.ThemeIcon("symbol-variable");
+      // Add context value
+      contextValue.push("argument");
+    }
+
+    if (item.inner.isCustom) {
+      contextValue.push("custom");
     }
 
     if (item.inner.note) {
