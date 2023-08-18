@@ -185,6 +185,40 @@ export function groupOperationTypes(
   return result;
 }
 
+const TAGS = [
+  "cda-tran",
+  "non-trivial",
+  "non-eq",
+  "full-scan",
+  "join",
+  "cor-subquery",
+  "cda-dep",
+  "1shot-easy",
+  "1shot-hard",
+  "mshot",
+  "phantom",
+];
+
+export function countTags(entities: Entity[]): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const entity of entities) {
+    for (const tag of TAGS) {
+      if (entity.note.includes(tag)) {
+        result.set(tag, (result.get(tag) || 0) + 1);
+      }
+    }
+
+    for (const operation of entity.operations) {
+      for (const tag of TAGS) {
+        if (operation.note.includes(tag)) {
+          result.set(tag, (result.get(tag) || 0) + 1);
+        }
+      }
+    }
+  }
+  return result;
+}
+
 export function getCurrentSelection(rootPath: string): Selection | undefined {
   const activeTextEditor = vscode.window.activeTextEditor;
   let selection: Selection | undefined;

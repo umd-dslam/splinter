@@ -3,6 +3,7 @@ import {
   AnalyzeResult,
   AnalyzeResultGroup,
   groupOperationTypes,
+  countTags,
 } from "../model";
 
 export type Info = {
@@ -76,7 +77,7 @@ export class InfoProvider implements vscode.TreeDataProvider<Info> {
       let entities = [...result.getGroup(group).values()].filter((entity) => {
         return !entity.note.includes("!entity") && !entity.name.match(/\[.+\]/);
       });
-      let children = [
+      let children: Info[] = [
         {
           name: "entities",
           value: entities.length.toString(),
@@ -93,6 +94,17 @@ export class InfoProvider implements vscode.TreeDataProvider<Info> {
           };
         })
       );
+
+      children.push({
+        name: "tags",
+        children: [...countTags(entities).entries()].map(([tag, count]) => {
+          return {
+            name: tag,
+            value: count.toString(),
+            children: [],
+          };
+        }),
+      });
 
       // Add the group to the stats.
       stats.push({
