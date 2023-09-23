@@ -64,9 +64,10 @@ export class InfoProvider implements vscode.TreeDataProvider<Info> {
       AnalyzeResultGroup.recognized,
       AnalyzeResultGroup.unknown,
     ]) {
+      const entities = [...result.getGroup(group).values()];
       // Accumulate the count per operation type across all entities.
       let operationTypeCounts = {} as { [key: string]: Set<string> };
-      for (const entity of result.getGroup(group).values()) {
+      for (const entity of entities) {
         operationTypeCounts = groupOperationTypes(
           entity.operations,
           operationTypeCounts
@@ -74,13 +75,16 @@ export class InfoProvider implements vscode.TreeDataProvider<Info> {
       }
 
       // Combine the entity count with operation type counts.
-      let entities = [...result.getGroup(group).values()].filter((entity) => {
-        return !entity.note.includes("!entity") && !entity.name.match(/\[.+\]/);
-      });
       let children: Info[] = [
         {
           name: "entities",
-          value: entities.length.toString(),
+          value: [...entities]
+            .filter((entity) => {
+              return (
+                !entity.note.includes("!entity") && !entity.name.match(/\[.+\]/)
+              );
+            })
+            .length.toString(),
           children: [],
         },
       ];

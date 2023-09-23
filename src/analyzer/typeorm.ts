@@ -120,7 +120,7 @@ export class TypeORMAnalyzer implements Analyzer {
     for (const [msg, selection] of messages) {
       if (EntityMessage.validate(msg)) {
         if (entities.has(msg.name)) {
-          vscode.window.showErrorMessage(
+          vscode.window.showWarningMessage(
             `Entity ${msg.name} is defined multiple times.`
           );
           continue;
