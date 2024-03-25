@@ -1,4 +1,4 @@
-# Clue
+# Splinter
 
 This extension analyzes and displays the ORM operations in the code.
 
