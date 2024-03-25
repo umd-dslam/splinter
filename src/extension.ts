@@ -6,15 +6,16 @@ import { AnalyzeResult, AnalyzeResultGroup, Operation } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
-import { Entity, Selection, getCurrentSelection } from "./model";
+import { Entity, getCurrentSelection } from "./model";
 
+// Sets the git hash and repository URL in the result
 async function setRepositoryInfo(rootPath: string) {
   const gitExtension = vscode.extensions.getExtension("vscode.git") as
     | vscode.Extension<GitExtension>
     | undefined;
 
   if (!gitExtension) {
-    return undefined;
+    return;
   }
   const api = gitExtension.exports.getAPI(1);
 
@@ -33,7 +34,7 @@ async function setRepositoryInfo(rootPath: string) {
 }
 
 function runAnalyzer(analyzer: Analyzer, rootPath: string) {
-  const config = vscode.workspace.getConfiguration("clue");
+  const config = vscode.workspace.getConfiguration("splinter");
 
   let analyzeResult = AnalyzeResult.getInstance();
 
@@ -112,7 +113,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const analyzer = new TypeORMAnalyzer(
     rootPath,
-    vscode.workspace.getConfiguration("clue").get("tsconfigRootDir", "")
+    vscode.workspace.getConfiguration("splinter").get("tsconfigRootDir", "")
   );
 
   let analyzeResult = AnalyzeResult.getInstance();
@@ -163,7 +164,7 @@ export function activate(context: vscode.ExtensionContext) {
   /*                  Register commands                     */
   /**********************************************************/
 
-  vscode.commands.registerCommand("clue.reanalyze", async () => {
+  vscode.commands.registerCommand("splinter.reanalyze", async () => {
     const vscodePath = vscode.Uri.joinPath(
       vscode.Uri.file(rootPath),
       ".vscode"
@@ -180,7 +181,7 @@ export function activate(context: vscode.ExtensionContext) {
     runAnalyzer(analyzer, rootPath);
   });
 
-  vscode.commands.registerCommand("clue.entity.add", async () => {
+  vscode.commands.registerCommand("splinter.entity.add", async () => {
     const name = await vscode.window.showInputBox({
       placeHolder: "Enter the name of the entity to add",
     });
@@ -235,7 +236,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   vscode.commands.registerCommand(
-    "clue.entity.moveToUnknown",
+    "splinter.entity.moveToUnknown",
     (item: ORMItem) => {
       moveEntity(
         item,
@@ -246,7 +247,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "clue.entity.moveToRecognized",
+    "splinter.entity.moveToRecognized",
     (item: ORMItem) => {
       moveEntity(
         item,
@@ -257,7 +258,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "clue.operation.add",
+    "splinter.operation.add",
     async (item: ORMItem) => {
       if (item.type !== "entity") {
         return;
@@ -305,7 +306,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "clue.argument.add",
+    "splinter.argument.add",
     async (item: ORMItem) => {
       if (item.type !== "operation") {
         return;
@@ -337,7 +338,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  vscode.commands.registerCommand("clue.item.remove", (item: ORMItem) => {
+  vscode.commands.registerCommand("splinter.item.remove", (item: ORMItem) => {
     if (!item.inner.isCustom) {
       return;
     }
@@ -370,17 +371,23 @@ export function activate(context: vscode.ExtensionContext) {
     analyzeResult.saveToStorage(rootPath);
   });
 
-  vscode.commands.registerCommand("clue.item.show", (loc: vscode.Location) => {
-    vscode.workspace.openTextDocument(loc.uri).then((doc) => {
-      vscode.window.showTextDocument(doc).then((editor) => {
-        editor.revealRange(loc.range, vscode.TextEditorRevealType.InCenter);
-        editor.selection = new vscode.Selection(loc.range.start, loc.range.end);
+  vscode.commands.registerCommand(
+    "splinter.item.show",
+    (loc: vscode.Location) => {
+      vscode.workspace.openTextDocument(loc.uri).then((doc) => {
+        vscode.window.showTextDocument(doc).then((editor) => {
+          editor.revealRange(loc.range, vscode.TextEditorRevealType.InCenter);
+          editor.selection = new vscode.Selection(
+            loc.range.start,
+            loc.range.end
+          );
+        });
       });
-    });
-  });
+    }
+  );
 
   vscode.commands.registerCommand(
-    "clue.item.addNote",
+    "splinter.item.addNote",
     (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
       if (!selectedItems) {
         selectedItems = [selectedItem];
@@ -411,7 +418,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "clue.item.clearNote",
+    "splinter.item.clearNote",
     (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
       if (!selectedItems) {
         selectedItems = [selectedItem];
@@ -424,7 +431,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "clue.item.copy",
+    "splinter.item.copy",
     (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
       if (!selectedItems) {
         selectedItems = [selectedItem];
@@ -437,7 +444,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "clue.info.copy",
+    "splinter.info.copy",
     (selectedInfoLine: Info, selectedInfoLines: Info[]) => {
       if (!selectedInfoLines) {
         selectedInfoLines = [selectedInfoLine];

@@ -44,6 +44,7 @@ type Repository = {
   hash: string;
 };
 
+// A singleton class that stores the result of the analysis.
 export class AnalyzeResult {
   private static _instance: AnalyzeResult;
 

@@ -1,5 +1,5 @@
 {
-  "name": "clue",
+  "name": "splinter",
   "displayName": "Clue",
   "description": "",
   "publisher": "ctring",
@@ -16,22 +16,22 @@
     "configuration": {
       "title": "Clue",
       "properties": {
-        "clue.tsconfigRootDir": {
+        "splinter.tsconfigRootDir": {
           "type": "string",
           "default": "./",
           "definitions": "Directory to find tsconfig"
         },
-        "clue.includeFiles": {
+        "splinter.includeFiles": {
           "type": "string",
           "default": "**/*.ts",
           "definitions": "Glob pattern of files to include in the analysis"
         },
-        "clue.excludeFiles": {
+        "splinter.excludeFiles": {
           "type": "string",
           "default": "{**/node_modules/**,**/migrations/**}",
           "definitions": "Glob pattern of files to exclude from the analysis"
         },
-        "clue.analyzeBatchSize": {
+        "splinter.analyzeBatchSize": {
           "type": "number",
           "default": 25,
           "definitions": "Number of files to analyze in a batch"
@@ -41,14 +41,14 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "clue",
+          "id": "splinter",
           "title": "Clue",
-          "icon": "media/clue-activitybar.svg"
+          "icon": "media/splinter-activitybar.svg"
         }
       ]
     },
     "views": {
-      "clue": [
+      "splinter": [
         {
           "id": "info",
           "name": "Info"
@@ -66,64 +66,64 @@
     "menus": {
       "view/item/context": [
         {
-          "command": "clue.item.addNote",
+          "command": "splinter.item.addNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
         },
         {
-          "command": "clue.item.clearNote",
+          "command": "splinter.item.clearNote",
           "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/",
           "group": "inline"
         },
         {
-          "command": "clue.item.addNote",
+          "command": "splinter.item.addNote",
           "when": "view == recognized || view == unknown",
           "group": "1_note@1"
         },
         {
-          "command": "clue.item.clearNote",
+          "command": "splinter.item.clearNote",
           "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/",
           "group": "1_note@2"
         },
         {
-          "command": "clue.entity.moveToUnknown",
+          "command": "splinter.entity.moveToUnknown",
           "when": "view == recognized && viewItem =~ /entity/",
           "group": "2_edit@1"
         },
         {
-          "command": "clue.entity.moveToRecognized",
+          "command": "splinter.entity.moveToRecognized",
           "when": "view == unknown && viewItem =~ /entity/",
           "group": "2_edit@1"
         },
         {
-          "command": "clue.operation.add",
+          "command": "splinter.operation.add",
           "when": "view == recognized && viewItem =~ /entity/",
           "group": "2_edit@2"
         },
         {
-          "command": "clue.argument.add",
+          "command": "splinter.argument.add",
           "when": "view == recognized && viewItem =~ /operation/",
           "group": "2_edit@1"
         },
         {
-          "command": "clue.item.remove",
+          "command": "splinter.item.remove",
           "when": "view == recognized && viewItem =~ /custom/",
           "group": "2_edit@2"
         },
         {
-          "command": "clue.item.copy",
+          "command": "splinter.item.copy",
           "when": "view == recognized || view == unknown",
           "group": "3_copy@1"
         },
         {
-          "command": "clue.info.copy",
+          "command": "splinter.info.copy",
           "when": "view == info",
           "group": "3_copy@1"
         }
       ],
       "view/title": [
         {
-          "command": "clue.entity.add",
+          "command": "splinter.entity.add",
           "when": "view == recognized",
           "group": "navigation"
         }
@@ -131,55 +131,55 @@
     },
     "commands": [
       {
-        "command": "clue.item.show",
+        "command": "splinter.item.show",
         "title": "Show Item"
       },
       {
-        "command": "clue.item.copy",
+        "command": "splinter.item.copy",
         "title": "Copy"
       },
       {
-        "command": "clue.info.copy",
+        "command": "splinter.info.copy",
         "title": "Copy"
       },
       {
-        "command": "clue.item.addNote",
+        "command": "splinter.item.addNote",
         "title": "Add Note",
         "icon": "$(note)"
       },
       {
-        "command": "clue.item.clearNote",
+        "command": "splinter.item.clearNote",
         "title": "Clear Note",
         "icon": "$(clear-all)"
       },
       {
-        "command": "clue.entity.add",
+        "command": "splinter.entity.add",
         "title": "New Entity",
         "category": "Clue",
         "icon": "$(add)"
       },
       {
-        "command": "clue.entity.moveToUnknown",
+        "command": "splinter.entity.moveToUnknown",
         "title": "Move to Unknown"
       },
       {
-        "command": "clue.entity.moveToRecognized",
+        "command": "splinter.entity.moveToRecognized",
         "title": "Move to Recognized"
       },
       {
-        "command": "clue.operation.add",
+        "command": "splinter.operation.add",
         "title": "Add Operation"
       },
       {
-        "command": "clue.argument.add",
+        "command": "splinter.argument.add",
         "title": "Add Argument"
       },
       {
-        "command": "clue.item.remove",
+        "command": "splinter.item.remove",
         "title": "Remove"
       },
       {
-        "command": "clue.reanalyze",
+        "command": "splinter.reanalyze",
         "title": "Re-analyze",
         "category": "Clue",
         "icon": "$(sync)"

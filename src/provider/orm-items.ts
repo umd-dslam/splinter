@@ -124,7 +124,7 @@ export class ORMItemProvider
 
     if (item.inner.selection) {
       treeItem.command = {
-        command: "clue.item.show",
+        command: "splinter.item.show",
         title: "Show",
         arguments: [
           new vscode.Location(
