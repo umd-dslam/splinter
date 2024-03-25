@@ -77,13 +77,16 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
           // Do the analysis
           await analyzer.analyze(files.slice(i, i + batchSize), analyzeResult);
 
+          // Save the result frequently
+          await analyzeResult.saveToStorage(rootPath);
+
           analyzeResult.refreshViews();
         }
 
         // Finalize any unresolved entities
         await analyzer.finalize(analyzeResult);
 
-        // Save the result to file for future use
+        // Save the result one last time
         await analyzeResult.saveToStorage(rootPath);
       }
 
@@ -170,7 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
       analyzer.getSaveFileName()
     );
 
-    await vscode.workspace.fs.delete(resultPath);
+    // await vscode.workspace.fs.delete(resultPath);
 
     analyzeResult.clear();
 

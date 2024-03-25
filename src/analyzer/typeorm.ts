@@ -48,11 +48,14 @@ export class TypeORMAnalyzer implements Analyzer {
     ]);
 
     for (const [text, file] of texts_files) {
+      if (result.fileAnalyzed(file.fsPath)) {
+        continue;
+      }
       const lintResults = await this.eslint.lintText(text.toString(), {
         filePath: file.fsPath,
       });
-      for (const result of lintResults) {
-        for (const message of result.messages) {
+      for (const lintResult of lintResults) {
+        for (const message of lintResult.messages) {
           if (
             !message.ruleId ||
             !message.ruleId.startsWith("typeorm-analyzer")
@@ -62,7 +65,7 @@ export class TypeORMAnalyzer implements Analyzer {
 
           let parsed: JsonMessage = JSON.parse(message.message);
           let selection = {
-            filePath: path.relative(this.rootPath, result.filePath),
+            filePath: path.relative(this.rootPath, lintResult.filePath),
             fromLine: message.line - 1,
             fromColumn: message.column - 1,
             toLine: (message.endLine || message.line) - 1,
@@ -72,6 +75,8 @@ export class TypeORMAnalyzer implements Analyzer {
         }
       }
     }
+
+    result.addAnalyzedFiles(files.map((file) => file.fsPath));
 
     this.collectEntities(messages, result);
     this.collectOperations(messages, result);

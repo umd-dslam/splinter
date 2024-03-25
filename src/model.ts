@@ -50,6 +50,7 @@ export class AnalyzeResult {
   private fileName: string = "analyze-result.json";
   private repository?: Repository;
   private group: Map<string, Map<string, Entity>>;
+  private analyzedFiles: Set<String> = new Set();
   private refreshFn: () => void = () => {};
 
   public static getInstance(): AnalyzeResult {
@@ -61,6 +62,16 @@ export class AnalyzeResult {
       [AnalyzeResultGroup.recognized, new Map<string, Entity>()],
       [AnalyzeResultGroup.unknown, new Map<string, Entity>()],
     ]);
+  }
+
+  addAnalyzedFiles(files: string[]) {
+    for (const file of files) {
+      this.analyzedFiles.add(file);
+    }
+  }
+
+  fileAnalyzed(file: string): boolean {
+    return this.analyzedFiles.has(file);
   }
 
   getGroup(group: AnalyzeResultGroup): Map<string, Entity> {
@@ -134,6 +145,11 @@ function replacer(key: string, value: any) {
       dataType: "Map",
       value: [...value],
     };
+  } else if (value instanceof Set) {
+    return {
+      dataType: "Set",
+      value: [...value],
+    };
   } else {
     return value;
   }
@@ -143,6 +159,8 @@ function reviver(key: string, value: any) {
   if (typeof value === "object" && value !== null) {
     if (value.dataType === "Map") {
       return new Map(value.value);
+    } else if (value.dataType === "Set") {
+      return new Set(value.value);
     }
   }
   return value;
