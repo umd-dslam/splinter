@@ -1,3 +1,7 @@
+<div align="center">
+<img src="media/logo.png" width="100"/>
+</div>
+
 # Splinter
 
 This extension analyzes and displays the ORM operations in the code.
