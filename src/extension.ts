@@ -46,7 +46,7 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
     {
       location: vscode.ProgressLocation.Notification,
       cancellable: true,
-      title: `Analyzing TypeORM`,
+      title: "Analyzing TypeORM",
     },
     async (progress) => {
       if (!(await analyzeResult.loadFromStorage(rootPath))) {
@@ -54,7 +54,8 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
         await setRepositoryInfo(rootPath);
 
         // Do the analysis
-        if (await analyzer.analyze()) {
+        let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
+        if (ok) {
           // Save the result 
           await analyzeResult.saveToStorage(rootPath);
         } else {

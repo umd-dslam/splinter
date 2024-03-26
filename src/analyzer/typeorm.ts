@@ -19,7 +19,7 @@ export class TypeORMAnalyzer implements Analyzer {
     this.result = result;
   }
 
-  async analyze() {
+  async analyze(onMessage: (msg: string) => void) {
     // Create a temporary file to store the messages
     const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: ".json" });
     console.log("Message file: ", tmpFile.name);
@@ -28,7 +28,7 @@ export class TypeORMAnalyzer implements Analyzer {
       cwd: this.rootPath,
     });
     proc.stdout.on("data", (data) => {
-      console.log(`${data}`);
+      onMessage(`${data}`);
     });
     proc.stderr.on("data", (data) => {
       console.error(`${data}`);

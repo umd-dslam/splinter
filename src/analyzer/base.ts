@@ -1,4 +1,4 @@
 export interface Analyzer {
-  analyze: () => Promise<boolean>;
+  analyze: (onMessage: (msg: string) => void) => Promise<boolean>;
   getSaveFileName: () => string;
 }
