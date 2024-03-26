@@ -1,92 +1,60 @@
-import * as vscode from "vscode";
-import * as path from "path";
-import { ESLint } from "eslint";
-import { AnalyzeResult, AnalyzeResultGroup, Selection } from "../model";
+import vscode from "vscode";
+import { AnalyzeResult, AnalyzeResultGroup } from "../model";
 import { Analyzer } from "./base";
 import {
   EntityMessage,
-  JsonMessage,
   MethodMessage,
-} from "eslint-plugin-typeorm-analyzer/messages";
+  Output,
+  Message,
+} from "@ctring/splinter-eslint";
+import child_process from "child_process";
+import tmp from "tmp";
 
 export class TypeORMAnalyzer implements Analyzer {
   private rootPath: string;
-  private eslint: ESLint;
-  private unresolvedMessages: [JsonMessage, Selection][] = [];
+  private result: AnalyzeResult;
 
-  constructor(rootPath: string, tsconfigRootDir: string) {
+  constructor(rootPath: string, result: AnalyzeResult) {
     this.rootPath = rootPath;
-    if (!path.isAbsolute(tsconfigRootDir)) {
-      tsconfigRootDir = path.join(rootPath, tsconfigRootDir);
-    }
-    this.eslint = new ESLint({
-      useEslintrc: false,
-      resolvePluginsRelativeTo: __dirname + "/../../node_modules",
-      overrideConfig: {
-        parser: __dirname + "/../../node_modules/@typescript-eslint/parser",
-        parserOptions: {
-          ecmaVersion: "latest",
-          project: "./**/tsconfig.json",
-          tsconfigRootDir,
-        },
-        plugins: ["typeorm-analyzer"],
-        /* eslint-disable @typescript-eslint/naming-convention */
-        rules: {
-          "typeorm-analyzer/find-schema": "warn",
-          "typeorm-analyzer/find-api": "warn",
-        },
-      },
+    this.result = result;
+  }
+
+  async analyze() {
+    // Create a temporary file to store the messages
+    const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: ".json" });
+    console.log("Message file: ", tmpFile.name);
+
+    const proc = child_process.spawn("npx", ["@ctring/splinter-eslint", this.rootPath, "--output", tmpFile.name], {
+      cwd: this.rootPath,
+    });
+    proc.stdout.on("data", (data) => {
+      console.log(`${data}`);
+    });
+    proc.stderr.on("data", (data) => {
+      console.error(`${data}`);
+    });
+
+    // Wait for the process to finish
+    return await new Promise((resolve: (ret: boolean) => void) => {
+      proc.on("close", async (code) => {
+        if (code === 0) {
+          const messagesFilePath = vscode.Uri.file(tmpFile.name);
+          const content = await vscode.workspace.fs.readFile(messagesFilePath);
+          const output: Output = JSON.parse(content.toString());
+          this.collectEntities(output.messages);
+          this.collectOperations(output.messages);
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      });
     });
   }
 
-  async analyze(files: vscode.Uri[], result: AnalyzeResult) {
-    const messages: [JsonMessage, Selection][] = [];
-    const texts = await Promise.all(files.map(vscode.workspace.fs.readFile));
-    const texts_files = texts.map<[string, vscode.Uri]>((text, index) => [
-      text.toString(),
-      files[index],
-    ]);
-
-    for (const [text, file] of texts_files) {
-      if (result.fileAnalyzed(file.fsPath)) {
-        continue;
-      }
-      const lintResults = await this.eslint.lintText(text.toString(), {
-        filePath: file.fsPath,
-      });
-      for (const lintResult of lintResults) {
-        for (const message of lintResult.messages) {
-          if (
-            !message.ruleId ||
-            !message.ruleId.startsWith("typeorm-analyzer")
-          ) {
-            continue;
-          }
-
-          let parsed: JsonMessage = JSON.parse(message.message);
-          let selection = {
-            filePath: path.relative(this.rootPath, lintResult.filePath),
-            fromLine: message.line - 1,
-            fromColumn: message.column - 1,
-            toLine: (message.endLine || message.line) - 1,
-            toColumn: (message.endColumn || message.column) - 1,
-          };
-          messages.push([parsed, selection]);
-        }
-      }
-    }
-
-    result.addAnalyzedFiles(files.map((file) => file.fsPath));
-
-    this.collectEntities(messages, result);
-    this.collectOperations(messages, result);
-  }
-
   private collectEntities(
-    messages: [JsonMessage, Selection][],
-    result: AnalyzeResult
+    messages: Message[],
   ) {
-    let entities = result.getGroup(AnalyzeResultGroup.recognized);
+    let entities = this.result.getGroup(AnalyzeResultGroup.recognized);
     if (entities.size === 0) {
       // Special entity for Entity Manager API (https://typeorm.io/entity-manager-api)
       entities.set("[EntityManager]", {
@@ -122,17 +90,24 @@ export class TypeORMAnalyzer implements Analyzer {
       });
     }
 
-    for (const [msg, selection] of messages) {
-      if (EntityMessage.validate(msg)) {
-        if (entities.has(msg.name)) {
+    for (const msg of messages) {
+      const content = msg.content;
+      if (EntityMessage.validate(content)) {
+        if (entities.has(content.name)) {
           vscode.window.showWarningMessage(
-            `Entity ${msg.name} is defined multiple times.`
+            `Entity ${content.name} is defined multiple times.`
           );
           continue;
         }
-        entities.set(msg.name, {
-          selection,
-          name: msg.name,
+        entities.set(content.name, {
+          selection: {
+            filePath: msg.filePath,
+            fromLine: msg.fromLine,
+            toLine: msg.toLine,
+            fromColumn: msg.fromColumn,
+            toColumn: msg.toColumn,
+          },
+          name: content.name,
           operations: [],
           note: "",
           isCustom: false,
@@ -141,21 +116,28 @@ export class TypeORMAnalyzer implements Analyzer {
     }
   }
 
-  private collectOperations(
-    messages: [JsonMessage, Selection][],
-    result: AnalyzeResult
-  ) {
-    let entities = result.getGroup(AnalyzeResultGroup.recognized);
-    for (const [msg, selection] of messages) {
-      if (MethodMessage.validate(msg)) {
+  private collectOperations(messages: Message[]) {
+    let entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+    let unknowns = this.result.getGroup(AnalyzeResultGroup.unknown);
+
+    for (const msg of messages) {
+      const content = msg.content;
+      const selection = {
+        filePath: msg.filePath,
+        fromLine: msg.fromLine,
+        toLine: msg.toLine,
+        fromColumn: msg.fromColumn,
+        toColumn: msg.toColumn,
+      };
+      if (MethodMessage.validate(content)) {
         const operation = {
           selection,
-          name: msg.object + "." + msg.name,
-          type: msg.methodType,
+          name: content.object + "." + content.name,
+          type: content.methodType,
           note: "",
-          arguments: msg.attributes.map((attr) => ({
+          arguments: content.attributes.map((attr) => ({
             selection: {
-              filePath: selection.filePath,
+              filePath: msg.filePath,
               fromLine: attr.start_line - 1,
               fromColumn: attr.start_column,
               toLine: attr.end_line - 1,
@@ -170,7 +152,7 @@ export class TypeORMAnalyzer implements Analyzer {
 
         // Find a recognized entity
         let found = false;
-        for (const calleeType of msg.objectTypes) {
+        for (const calleeType of content.objectTypes) {
           // Special case for Entity Manager API
           if (calleeType === "EntityManager") {
             entities.get("[EntityManager]")!.operations.push(operation);
@@ -227,55 +209,39 @@ export class TypeORMAnalyzer implements Analyzer {
 
         // Cannot recognize an entity
         if (!found) {
-          this.unresolvedMessages.push([msg, selection]);
-        }
-      }
-    }
-  }
+          const calleeType = content.objectTypes[0];
+          if (!unknowns.has(calleeType)) {
+            unknowns.set(calleeType, {
+              selection: undefined,
+              name: calleeType,
+              operations: [],
+              note: "",
+              isCustom: false,
+            });
+          }
 
-  async finalize(result: AnalyzeResult) {
-    // Last chance to match operations to entities
-    let unresolved = this.unresolvedMessages;
-    this.unresolvedMessages = [];
-    this.collectOperations(unresolved, result);
-
-    // Put the unresolved messages into unknowns
-    let unknowns = result.getGroup(AnalyzeResultGroup.unknown);
-    for (const [msg, selection] of this.unresolvedMessages) {
-      if (MethodMessage.validate(msg)) {
-        const calleeType = msg.objectTypes[0];
-        if (!unknowns.has(calleeType)) {
-          unknowns.set(calleeType, {
-            selection: undefined,
-            name: calleeType,
-            operations: [],
+          unknowns.get(calleeType)!.operations.push({
+            selection,
+            name: content.object + "." + content.name,
+            type: content.methodType,
             note: "",
+            arguments: content.attributes.map((attr) => ({
+              selection: {
+                filePath: selection.filePath,
+                fromLine: attr.start_line - 1,
+                fromColumn: attr.start_column,
+                toLine: attr.end_line - 1,
+                toColumn: attr.end_column,
+              },
+              name: attr.name,
+              note: "",
+              isCustom: false,
+            })),
             isCustom: false,
           });
         }
-
-        unknowns.get(calleeType)!.operations.push({
-          selection,
-          name: msg.object + "." + msg.name,
-          type: msg.methodType,
-          note: "",
-          arguments: msg.attributes.map((attr) => ({
-            selection: {
-              filePath: selection.filePath,
-              fromLine: attr.start_line - 1,
-              fromColumn: attr.start_column,
-              toLine: attr.end_line - 1,
-              toColumn: attr.end_column,
-            },
-            name: attr.name,
-            note: "",
-            isCustom: false,
-          })),
-          isCustom: false,
-        });
       }
     }
-    this.unresolvedMessages = [];
   }
 
   getSaveFileName() {

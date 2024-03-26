@@ -1,6 +1,6 @@
 {
   "name": "splinter",
-  "displayName": "Clue",
+  "displayName": "Splinter",
   "description": "",
   "publisher": "ctring",
   "version": "0.0.6",
@@ -14,13 +14,8 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Clue",
+      "title": "Splinter",
       "properties": {
-        "splinter.tsconfigRootDir": {
-          "type": "string",
-          "default": "./",
-          "definitions": "Directory to find tsconfig"
-        },
         "splinter.includeFiles": {
           "type": "string",
           "default": "**/*.ts",
@@ -42,7 +37,7 @@
       "activitybar": [
         {
           "id": "splinter",
-          "title": "Clue",
+          "title": "Splinter",
           "icon": "media/splinter-activitybar.svg"
         }
       ]
@@ -155,7 +150,7 @@
       {
         "command": "splinter.entity.add",
         "title": "New Entity",
-        "category": "Clue",
+        "category": "Splinter",
         "icon": "$(add)"
       },
       {
@@ -181,7 +176,7 @@
       {
         "command": "splinter.reanalyze",
         "title": "Re-analyze",
-        "category": "Clue",
+        "category": "Splinter",
         "icon": "$(sync)"
       }
     ]
@@ -200,6 +195,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
     "@types/pluralize": "^0.0.29",
+    "@types/tmp": "^0.2.6",
     "@types/vscode": "^1.77.0",
     "@vscode/test-electron": "^2.3.0",
     "glob": "^8.1.0",
@@ -207,12 +203,10 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.56.0",
-    "@typescript-eslint/parser": "^5.56.0",
+    "@ctring/splinter-eslint": "^1.0.8",
     "clipboardy": "^3.0.0",
-    "eslint": "^8.36.0",
-    "eslint-plugin-typeorm-analyzer": "^1.0.8",
-    "pluralize": "^8.0.0"
+    "pluralize": "^8.0.0",
+    "tmp": "^0.2.3"
   },
   "extensionDependencies": [
     "vscode.git"

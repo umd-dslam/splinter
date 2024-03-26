@@ -1,12 +1,12 @@
-import * as vscode from "vscode";
-import * as path from "path";
+import vscode from "vscode";
+import fs from "fs";
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { AnalyzeResult, AnalyzeResultGroup, Operation } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
-import { Entity, getCurrentSelection } from "./model";
+import { Entity, getCurrentSelection, getVSCodePath } from "./model";
 
 // Sets the git hash and repository URL in the result
 async function setRepositoryInfo(rootPath: string) {
@@ -46,49 +46,20 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
     {
       location: vscode.ProgressLocation.Notification,
       cancellable: true,
-      title: `Analyzing TypeORM in batches of ${batchSize} files`,
+      title: `Analyzing TypeORM`,
     },
-    async (progress, cancellation) => {
+    async (progress) => {
       if (!(await analyzeResult.loadFromStorage(rootPath))) {
         // If the result is not found, start a new analysis
         await setRepositoryInfo(rootPath);
 
-        const files = await vscode.workspace.findFiles(
-          config.get("includeFiles")!.toString(),
-          config.get("excludeFiles")!.toString()
-        );
-
-        files.sort();
-
-        for (let i = 0; i < files.length; i += batchSize) {
-          if (cancellation.isCancellationRequested) {
-            break;
-          }
-
-          // Update the progress message
-          const pathSample = files
-            .slice(i, i + batchSize)
-            .map((f) => path.relative(rootPath, f.path))
-            .join(", ");
-          progress.report({
-            increment: (batchSize / files.length) * 100,
-            message: `[${i + 1}/${files.length}] ${pathSample}`,
-          });
-
-          // Do the analysis
-          await analyzer.analyze(files.slice(i, i + batchSize), analyzeResult);
-
-          // Save the result frequently
+        // Do the analysis
+        if (await analyzer.analyze()) {
+          // Save the result 
           await analyzeResult.saveToStorage(rootPath);
-
-          analyzeResult.refreshViews();
+        } else {
+          vscode.window.showErrorMessage("Failed to analyze the project.");
         }
-
-        // Finalize any unresolved entities
-        await analyzer.finalize(analyzeResult);
-
-        // Save the result one last time
-        await analyzeResult.saveToStorage(rootPath);
       }
 
       analyzeResult.refreshViews();
@@ -103,7 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const rootPath =
     vscode.workspace.workspaceFolders &&
-    vscode.workspace.workspaceFolders.length > 0
+      vscode.workspace.workspaceFolders.length > 0
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "";
 
@@ -111,12 +82,13 @@ export function activate(context: vscode.ExtensionContext) {
   /*             Set up the analyzer and views              */
   /**********************************************************/
 
+  let analyzeResult = AnalyzeResult.getInstance();
+
   const analyzer = new TypeORMAnalyzer(
     rootPath,
-    vscode.workspace.getConfiguration("splinter").get("tsconfigRootDir", "")
+    analyzeResult,
   );
 
-  let analyzeResult = AnalyzeResult.getInstance();
   analyzeResult.setFileName(analyzer.getSaveFileName());
 
   const infoProvider = new InfoProvider();
@@ -165,16 +137,14 @@ export function activate(context: vscode.ExtensionContext) {
   /**********************************************************/
 
   vscode.commands.registerCommand("splinter.reanalyze", async () => {
-    const vscodePath = vscode.Uri.joinPath(
-      vscode.Uri.file(rootPath),
-      ".vscode"
-    );
     const resultPath = vscode.Uri.joinPath(
-      vscodePath,
+      getVSCodePath(rootPath),
       analyzer.getSaveFileName()
     );
 
-    // await vscode.workspace.fs.delete(resultPath);
+    if (fs.existsSync(resultPath.fsPath)) {
+      await vscode.workspace.fs.delete(resultPath);
+    }
 
     analyzeResult.clear();
 
@@ -459,4 +429,4 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-export function deactivate() {}
+export function deactivate() { }

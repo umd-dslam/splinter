@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import vscode from "vscode";
 import {
   AnalyzeResult,
   AnalyzeResultGroup,
@@ -7,8 +7,8 @@ import {
   Argument,
   groupOperationTypes,
 } from "../model";
-import * as path from "path";
-import * as pluralize from "pluralize";
+import path from "path";
+import pluralize from "pluralize";
 
 export type ORMItem = {
   type: "entity" | "operation" | "argument";
@@ -44,13 +44,13 @@ function computeCDA(item: ORMItem): number | null {
 
 export class ORMItemProvider
   implements
-    vscode.TreeDataProvider<ORMItem>,
-    vscode.TreeDragAndDropController<ORMItem>
+  vscode.TreeDataProvider<ORMItem>,
+  vscode.TreeDragAndDropController<ORMItem>
 {
   constructor(
     private rootPath: string,
     private resultGroup: AnalyzeResultGroup
-  ) {}
+  ) { }
 
   getTreeItem(item: ORMItem): vscode.TreeItem {
     let relativePath = item.inner.selection
@@ -250,8 +250,7 @@ export class ORMItemProvider
       .map((item) => `${item.name} [${item.parentName}]`)
       .join("\n");
     let confirm = await vscode.window.showInformationMessage(
-      `Move ${pluralize("operations", items.length, true)} to ${
-        target.inner.name
+      `Move ${pluralize("operations", items.length, true)} to ${target.inner.name
       }?`,
       { modal: true, detail },
       "Move"
