@@ -46,10 +46,15 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
       cancellable: true,
       title: "Analyzing TypeORM",
     },
-    async (progress) => {
+    async (progress, cancel) => {
       if (!(await analyzeResult.loadFromStorage(rootPath))) {
         // If the result is not found, start a new analysis
         await setRepositoryInfo(rootPath);
+
+        // Set up the cancellation
+        cancel.onCancellationRequested(() => {
+          analyzer.cancel();
+        });
 
         // Do the analysis
         let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
@@ -83,9 +88,12 @@ export function activate(context: vscode.ExtensionContext) {
 
   let analyzeResult = AnalyzeResult.getInstance();
 
+  const batchSize = vscode.workspace.getConfiguration("splinter").get("batchSize") as number;
+
   const analyzer = new TypeORMAnalyzer(
     rootPath,
     analyzeResult,
+    batchSize,
   );
 
   analyzeResult.setFileName(analyzer.getSaveFileName());

@@ -11,32 +11,49 @@ import child_process from "child_process";
 import tmp from "tmp";
 
 export class TypeORMAnalyzer implements Analyzer {
-  private rootPath: string;
-  private result: AnalyzeResult;
+  private proc: child_process.ChildProcess | null;
 
-  constructor(rootPath: string, result: AnalyzeResult) {
-    this.rootPath = rootPath;
-    this.result = result;
+  constructor(private rootPath: string, private result: AnalyzeResult, private batchSize: number) {
+    this.proc = null;
   }
 
   async analyze(onMessage: (msg: string) => void) {
+    if (this.proc !== null) {
+      vscode.window.showErrorMessage("Analyze process is already running.");
+      return false;
+    }
+
     // Create a temporary file to store the messages
     const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: ".json" });
     console.log("Message file: ", tmpFile.name);
 
-    const proc = child_process.spawn("npx", ["@ctring/splinter-eslint", this.rootPath, "--output", tmpFile.name], {
+    this.proc = child_process.spawn("npx", [
+      "@ctring/splinter-eslint",
+      this.rootPath,
+      "--output",
+      tmpFile.name,
+      "--batch",
+      `${this.batchSize}`
+    ], {
       cwd: this.rootPath,
     });
-    proc.stdout.on("data", (data) => {
+
+    if (this.proc === null) {
+      console.error("Failed to spawn the analyze process.");
+      return false;
+    }
+
+    this.proc.stdout?.on("data", (data) => {
       onMessage(`${data}`);
     });
-    proc.stderr.on("data", (data) => {
+
+    this.proc.stderr?.on("data", (data) => {
       console.error(`${data}`);
     });
 
     // Wait for the process to finish
     return await new Promise((resolve: (ret: boolean) => void) => {
-      proc.on("close", async (code) => {
+      this.proc?.on("close", async (code) => {
         if (code === 0) {
           const messagesFilePath = vscode.Uri.file(tmpFile.name);
           const content = await vscode.workspace.fs.readFile(messagesFilePath);
@@ -114,6 +131,11 @@ export class TypeORMAnalyzer implements Analyzer {
         });
       }
     }
+  }
+
+  cancel() {
+    this.proc?.kill();
+    this.proc = null;
   }
 
   private collectOperations(messages: Message[]) {
