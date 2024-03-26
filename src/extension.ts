@@ -40,8 +40,6 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
 
   analyzeResult.refreshViews();
 
-  const batchSize = config.get("analyzeBatchSize") as number;
-
   vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,

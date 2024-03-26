@@ -13,26 +13,6 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "configuration": {
-      "title": "Splinter",
-      "properties": {
-        "splinter.includeFiles": {
-          "type": "string",
-          "default": "**/*.ts",
-          "definitions": "Glob pattern of files to include in the analysis"
-        },
-        "splinter.excludeFiles": {
-          "type": "string",
-          "default": "{**/node_modules/**,**/migrations/**}",
-          "definitions": "Glob pattern of files to exclude from the analysis"
-        },
-        "splinter.analyzeBatchSize": {
-          "type": "number",
-          "default": 25,
-          "definitions": "Number of files to analyze in a batch"
-        }
-      }
-    },
     "viewsContainers": {
       "activitybar": [
         {
