@@ -1,5 +1,6 @@
 import vscode from "vscode";
 import fs from "fs";
+import glob from 'glob';
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { DjangoAnalyzer } from "./analyzer/django";
@@ -90,18 +91,9 @@ export function activate(context: vscode.ExtensionContext) {
   let language = vscode.workspace.getConfiguration("splinter").get("language") as string;
   if (language === "auto") {
     // Try to detect the language by counting the number of file types: *.ts and *.py
-    let tsCount = 0;
-    let pyCount = 0;
-    if (rootPath) {
-      const files = fs.readdirSync(rootPath);
-      for (let file of files) {
-        if (file.endsWith(".ts")) {
-          tsCount++;
-        } else if (file.endsWith(".py")) {
-          pyCount++;
-        }
-      }
-    }
+
+    const tsCount = glob.sync('**/**.ts', { cwd: rootPath }).length;
+    const pyCount = glob.sync('**/**.py', { cwd: rootPath }).length;
 
     if (tsCount + pyCount === 0) {
       vscode.window.showErrorMessage("No TypeScript or Python files found in the project.");
