@@ -3,6 +3,7 @@ import { AnalyzeResult, AnalyzeResultGroup } from "../model";
 import { Analyzer } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
+import path from "path";
 
 class Content {
     constructor(public readonly type: string) { }
@@ -77,7 +78,7 @@ export class DjangoAnalyzer implements Analyzer {
         }
 
         // Create a temporary file to store the messages
-        const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: ".json" });
+        const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: "django.json" });
         console.log("Message file: ", tmpFile.name);
 
         this.proc = child_process.spawn("python3", [
@@ -134,9 +135,9 @@ export class DjangoAnalyzer implements Analyzer {
                 }
                 entities.set(content.name, {
                     selection: {
-                        filePath: msg.filePath,
-                        fromLine: msg.fromLine,
-                        toLine: msg.toLine,
+                        filePath: path.relative(this.rootPath, msg.filePath),
+                        fromLine: msg.fromLine - 1,
+                        toLine: msg.toLine - 1,
                         fromColumn: msg.fromColumn,
                         toColumn: msg.toColumn,
                     },
@@ -160,10 +161,11 @@ export class DjangoAnalyzer implements Analyzer {
 
         for (const msg of messages) {
             const content = msg.content;
+            const filePath = path.relative(this.rootPath, msg.filePath);
             const selection = {
-                filePath: msg.filePath,
-                fromLine: msg.fromLine,
-                toLine: msg.toLine,
+                filePath,
+                fromLine: msg.fromLine - 1,
+                toLine: msg.toLine - 1,
                 fromColumn: msg.fromColumn,
                 toColumn: msg.toColumn,
             };
@@ -175,10 +177,10 @@ export class DjangoAnalyzer implements Analyzer {
                     note: "",
                     arguments: content.attributes.map((attr) => ({
                         selection: {
-                            filePath: msg.filePath,
+                            filePath,
                             fromLine: attr.startLine - 1,
-                            fromColumn: attr.startColumn,
                             toLine: attr.endLine - 1,
+                            fromColumn: attr.startColumn,
                             toColumn: attr.endColumn,
                         },
                         name: attr.name,
@@ -229,8 +231,8 @@ export class DjangoAnalyzer implements Analyzer {
                             selection: {
                                 filePath: selection.filePath,
                                 fromLine: attr.startLine - 1,
-                                fromColumn: attr.startColumn,
                                 toLine: attr.endLine - 1,
+                                fromColumn: attr.startColumn,
                                 toColumn: attr.endColumn,
                             },
                             name: attr.name,
