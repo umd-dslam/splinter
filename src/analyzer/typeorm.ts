@@ -17,6 +17,10 @@ export class TypeORMAnalyzer implements Analyzer {
     this.proc = null;
   }
 
+  getName() {
+    return "type-orm";
+  }
+
   async analyze(onMessage: (msg: string) => void) {
     if (this.proc !== null) {
       vscode.window.showErrorMessage("Analyze process is already running.");

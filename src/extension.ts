@@ -2,6 +2,7 @@ import vscode from "vscode";
 import fs from "fs";
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
+import { DjangoAnalyzer } from "./analyzer/django";
 import { AnalyzeResult, AnalyzeResultGroup, Operation } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
@@ -44,7 +45,7 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
     {
       location: vscode.ProgressLocation.Notification,
       cancellable: true,
-      title: "Analyzing TypeORM",
+      title: `Analyzing ${analyzer.getName()} project...`,
     },
     async (progress, cancel) => {
       if (!(await analyzeResult.loadFromStorage(rootPath))) {
@@ -86,17 +87,57 @@ export function activate(context: vscode.ExtensionContext) {
   /*             Set up the analyzer and views              */
   /**********************************************************/
 
-  let analyzeResult = AnalyzeResult.getInstance();
+  let language = vscode.workspace.getConfiguration("splinter").get("language") as string;
+  if (language === "auto") {
+    // Try to detect the language by counting the number of file types: *.ts and *.py
+    let tsCount = 0;
+    let pyCount = 0;
+    if (rootPath) {
+      const files = fs.readdirSync(rootPath);
+      for (let file of files) {
+        if (file.endsWith(".ts")) {
+          tsCount++;
+        } else if (file.endsWith(".py")) {
+          pyCount++;
+        }
+      }
+    }
 
+    if (tsCount + pyCount === 0) {
+      vscode.window.showErrorMessage("No TypeScript or Python files found in the project.");
+      return;
+    }
+
+    if (tsCount > pyCount) {
+      language = "typescript";
+    } else {
+      language = "python";
+    }
+  }
+
+  let analyzeResult = AnalyzeResult.getInstance();
   const batchSize = vscode.workspace.getConfiguration("splinter").get("batchSize") as number;
 
-  const analyzer = new TypeORMAnalyzer(
-    rootPath,
-    analyzeResult,
-    batchSize,
-  );
+  let analyzer: Analyzer | null = null;
+  switch (language) {
+    case "python":
+      analyzer = new DjangoAnalyzer(
+        rootPath,
+        AnalyzeResult.getInstance(),
+      );
+      break;
 
-  analyzeResult.setFileName(analyzer.getSaveFileName());
+    case "typescript":
+    default:
+      analyzer = new TypeORMAnalyzer(
+        rootPath,
+        AnalyzeResult.getInstance(),
+        batchSize,
+      );
+      break;
+  }
+
+  analyzeResult.setFileName(`${analyzer!.getName()}-results.json`);
 
   const infoProvider = new InfoProvider();
   context.subscriptions.push(
@@ -146,7 +187,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand("splinter.reanalyze", async () => {
     const resultPath = vscode.Uri.joinPath(
       getVSCodePath(rootPath),
-      analyzer.getSaveFileName()
+      `${analyzer!.getName()}-results.json`
     );
 
     if (fs.existsSync(resultPath.fsPath)) {
@@ -155,7 +196,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     analyzeResult.clear();
 
-    runAnalyzer(analyzer, rootPath);
+    runAnalyzer(analyzer!, rootPath);
   });
 
   vscode.commands.registerCommand("splinter.entity.add", async () => {
