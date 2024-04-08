@@ -30,6 +30,23 @@
             "python"
           ],
           "definitions": "Programming language of the text to analyze"
+        },
+        "splinter.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/out/**",
+            "**/target/**",
+            "**/.vscode/**",
+            "**/.git/**",
+            "**/.github/**",
+            "**/test*"
+          ]
         }
       }
     },

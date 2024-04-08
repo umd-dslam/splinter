@@ -109,6 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   let analyzeResult = AnalyzeResult.getInstance();
   const batchSize = vscode.workspace.getConfiguration("splinter").get("batchSize") as number;
+  const exclude = vscode.workspace.getConfiguration("splinter").get("exclude") as [string];
 
   let analyzer: Analyzer | null = null;
   switch (language) {
@@ -116,6 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
       analyzer = new DjangoAnalyzer(
         rootPath,
         AnalyzeResult.getInstance(),
+        exclude
       );
       break;
 

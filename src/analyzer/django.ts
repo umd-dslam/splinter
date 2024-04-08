@@ -63,7 +63,7 @@ class Message {
 export class DjangoAnalyzer implements Analyzer {
     private proc: child_process.ChildProcess | null;
 
-    constructor(private rootPath: string, private result: AnalyzeResult) {
+    constructor(private rootPath: string, private result: AnalyzeResult, private exclude: [string]) {
         this.proc = null;
     }
 
@@ -81,13 +81,20 @@ export class DjangoAnalyzer implements Analyzer {
         const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: "django.json" });
         console.log("Message file: ", tmpFile.name);
 
-        this.proc = child_process.spawn("python3", [
+        const args = [
             "-m",
             "splinter",
             this.rootPath,
             "--output",
             tmpFile.name,
-        ]);
+        ];
+
+        for (const ex of this.exclude) {
+            args.push("--exclude-glob");
+            args.push(ex);
+        }
+
+        this.proc = child_process.spawn("python3", args);
 
         if (this.proc === null) {
             console.error("Failed to spawn the analyze process.");
@@ -95,7 +102,8 @@ export class DjangoAnalyzer implements Analyzer {
         }
 
         this.proc.stdout?.on("data", (data) => {
-            onMessage(`${data}`);
+            const lines = `${data}`.trimEnd().split("\n");
+            onMessage(lines[lines.length - 1]);
         });
 
         this.proc.stderr?.on("data", (data) => {
@@ -190,28 +198,20 @@ export class DjangoAnalyzer implements Analyzer {
                     isCustom: false,
                 };
 
-                // Find a recognized entity
-                let found = false;
                 // Parse the entity name in the pattern "django.db.models.manager.Manager[EntityName]"
                 var entityName = content.objectType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];
                 var entity =
                     entityName === undefined ? entityName : entities.get(entityName);
                 if (entity !== undefined) {
                     entity.operations.push(operation);
-                    found = true;
-                    break;
                 }
-
                 // Exact match of the entity name. This might cause false positives if
                 // a non-entity callee happens to have the same name as an entity.
-                if (entities.has(content.objectType)) {
+                else if (entities.has(content.objectType)) {
                     entities.get(content.objectType)!.operations.push(operation);
-                    found = true;
-                    break;
                 }
-
                 // Cannot recognize an entity
-                if (!found) {
+                else {
                     if (!unknowns.has(content.objectType)) {
                         unknowns.set(content.objectType, {
                             selection: undefined,
