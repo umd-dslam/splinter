@@ -38,7 +38,7 @@ class MethodContent extends Content {
         public readonly name: string,
         public readonly methodType: 'read' | 'write' | 'other' | 'transaction',
         public readonly object: string,
-        public readonly objectType: string,
+        public readonly objectTypes: [string],
         public readonly attributes: Attribute[]
     ) {
         super('method');
@@ -107,7 +107,7 @@ export class DjangoAnalyzer implements Analyzer {
         });
 
         this.proc.stderr?.on("data", (data) => {
-            console.error(`${data}`);
+            vscode.window.showErrorMessage(`${data}`);
         });
 
         // Wait for the process to finish
@@ -131,6 +131,15 @@ export class DjangoAnalyzer implements Analyzer {
         messages: Message[],
     ) {
         let entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        if (entities.size === 0) {
+            entities.set("django.db.transaction.atomic", {
+                selection: undefined,
+                name: "[django.db.transaction.atomic]",
+                operations: [],
+                note: "",
+                isCustom: false,
+            });
+        }
 
         for (const msg of messages) {
             const content = msg.content;
@@ -198,31 +207,67 @@ export class DjangoAnalyzer implements Analyzer {
                     isCustom: false,
                 };
 
-                // Parse the entity name in the pattern "django.db.models.manager.Manager[EntityName]"
-                var entityName = content.objectType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];
-                var entity =
-                    entityName === undefined ? entityName : entities.get(entityName);
-                if (entity !== undefined) {
-                    entity.operations.push(operation);
+                // Find a recognized entity
+                let found = false;
+                for (const calleeType of content.objectTypes) {
+                    // Parse the entity name in the pattern "django.db.models.manager.Manager[ModelName]"
+                    var entityName = calleeType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];
+                    var entity =
+                        entityName === undefined ? entityName : entities.get(entityName);
+                    if (entity !== undefined) {
+                        entity.operations.push(operation);
+                        found = true;
+                        break;
+                    }
+
+                    // Parse the entity name in the pattern "django.db.models.manager.BaseManager[ModelName]"
+                    entityName = calleeType.match(/django.db.models.manager.BaseManager\[(.*)\]/)?.[1];
+                    entity =
+                        entityName === undefined ? entityName : entities.get(entityName);
+                    if (entity !== undefined) {
+                        entity.operations.push(operation);
+                        found = true;
+                        break;
+                    }
+
+                    // Parse the entity names in the pattern "django.db.models.query._QuerySet[ModelName, ...]"
+                    let entityNamesStr = calleeType.match(/django.db.models.query._QuerySet\[(.*)\]/)?.[1];
+                    let entityNames = entityNamesStr === undefined ? [] : entityNamesStr.split(", ");
+                    for (const entityName of entityNames) {
+                        entity = entities.get(entityName);
+                        if (entity !== undefined) {
+                            entity.operations.push(operation);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        break;
+                    }
+
+                    // Exact match of the entity name. This might cause false positives if
+                    // a non-entity callee happens to have the same name as an entity.
+                    if (entities.has(calleeType)) {
+                        entities.get(calleeType)!.operations.push(operation);
+                        found = true;
+                        break;
+                    }
                 }
-                // Exact match of the entity name. This might cause false positives if
-                // a non-entity callee happens to have the same name as an entity.
-                else if (entities.has(content.objectType)) {
-                    entities.get(content.objectType)!.operations.push(operation);
-                }
-                // Cannot recognize an entity
-                else {
-                    if (!unknowns.has(content.objectType)) {
-                        unknowns.set(content.objectType, {
+
+
+                if (!found) {
+                    const calleeType = content.objectTypes[0];
+                    if (!unknowns.has(calleeType)) {
+                        unknowns.set(calleeType, {
                             selection: undefined,
-                            name: content.objectType,
+                            name: calleeType,
                             operations: [],
                             note: "",
                             isCustom: false,
                         });
                     }
 
-                    unknowns.get(content.objectType)!.operations.push({
+                    unknowns.get(calleeType)!.operations.push({
                         selection,
                         name: content.object + "." + content.name,
                         type: content.methodType,

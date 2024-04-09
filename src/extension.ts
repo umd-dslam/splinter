@@ -46,9 +46,11 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
     {
       location: vscode.ProgressLocation.Notification,
       cancellable: true,
-      title: `Analyzing ${analyzer.getName()} project...`,
+      title: `Analyzing ${analyzer.getName()} project`,
     },
     async (progress, cancel) => {
+      analyzeResult.clear();
+
       if (!(await analyzeResult.loadFromStorage(rootPath))) {
         // If the result is not found, start a new analysis
         await setRepositoryInfo(rootPath);
@@ -116,7 +118,7 @@ export function activate(context: vscode.ExtensionContext) {
     case "python":
       analyzer = new DjangoAnalyzer(
         rootPath,
-        AnalyzeResult.getInstance(),
+        analyzeResult,
         exclude
       );
       break;
@@ -125,7 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
     default:
       analyzer = new TypeORMAnalyzer(
         rootPath,
-        AnalyzeResult.getInstance(),
+        analyzeResult,
         batchSize,
       );
       break;
