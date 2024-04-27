@@ -123,6 +123,7 @@ export class DjangoAnalyzer implements Analyzer {
                 } else {
                     resolve(false);
                 }
+                this.proc = null;
             });
         });
     }

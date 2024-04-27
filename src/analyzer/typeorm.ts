@@ -68,6 +68,7 @@ export class TypeORMAnalyzer implements Analyzer {
         } else {
           resolve(false);
         }
+        this.proc = null;
       });
     });
   }

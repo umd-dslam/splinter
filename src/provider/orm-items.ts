@@ -45,8 +45,7 @@ function computeCDA(item: ORMItem): number | null {
 export class ORMItemProvider
   implements
   vscode.TreeDataProvider<ORMItem>,
-  vscode.TreeDragAndDropController<ORMItem>
-{
+  vscode.TreeDragAndDropController<ORMItem> {
   constructor(
     private rootPath: string,
     private resultGroup: AnalyzeResultGroup
@@ -287,6 +286,6 @@ export class ORMItemProvider
       entity.operations.splice(index, 1);
     }
 
-    await analyzeResult.saveToStorage(this.rootPath);
+    await analyzeResult.saveToStorage();
   }
 }

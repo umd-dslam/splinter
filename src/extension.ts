@@ -8,7 +8,7 @@ import { AnalyzeResult, AnalyzeResultGroup, Operation } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
-import { Entity, getCurrentSelection, getVSCodePath } from "./model";
+import { Entity, getCurrentSelection } from "./model";
 
 // Sets the git hash and repository URL in the result
 async function setRepositoryInfo(rootPath: string) {
@@ -51,7 +51,7 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
     async (progress, cancel) => {
       analyzeResult.clear();
 
-      if (!(await analyzeResult.loadFromStorage(rootPath))) {
+      if (!(await analyzeResult.loadFromStorage())) {
         // If the result is not found, start a new analysis
         await setRepositoryInfo(rootPath);
 
@@ -64,7 +64,7 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
         let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
         if (ok) {
           // Save the result 
-          await analyzeResult.saveToStorage(rootPath);
+          await analyzeResult.saveToStorage();
         } else {
           vscode.window.showErrorMessage("Failed to analyze the project.");
         }
@@ -80,11 +80,13 @@ export function activate(context: vscode.ExtensionContext) {
     return;
   }
 
-  const rootPath =
+  const workspacePath = vscode.Uri.parse(
     vscode.workspace.workspaceFolders &&
       vscode.workspace.workspaceFolders.length > 0
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
-      : "";
+      : "");
+  const rootPath = vscode.Uri.joinPath(workspacePath,
+    vscode.workspace.getConfiguration("splinter").get("rootDir") as string).fsPath;
 
   /**********************************************************/
   /*             Set up the analyzer and views              */
@@ -133,7 +135,15 @@ export function activate(context: vscode.ExtensionContext) {
       break;
   }
 
-  analyzeResult.setFileName(`${analyzer!.getName()}-results.json`);
+  const vscodePath = vscode.Uri.joinPath(workspacePath, ".vscode");
+  if (!fs.existsSync(vscodePath.fsPath)) {
+    fs.mkdirSync(vscodePath.fsPath);
+  }
+  const resultPath = vscode.Uri.joinPath(
+    vscodePath,
+    `${analyzer!.getName()}-results.json`
+  );
+  analyzeResult.setResultPath(resultPath);
 
   const infoProvider = new InfoProvider();
   context.subscriptions.push(
@@ -182,7 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand("splinter.reanalyze", async () => {
     const resultPath = vscode.Uri.joinPath(
-      getVSCodePath(rootPath),
+      vscode.Uri.joinPath(workspacePath, ".vscode"),
       `${analyzer!.getName()}-results.json`
     );
 
@@ -228,7 +238,7 @@ export function activate(context: vscode.ExtensionContext) {
       isCustom: true,
     });
 
-    analyzeResult.saveToStorage(rootPath);
+    analyzeResult.saveToStorage();
   });
 
   const moveEntity = async (
@@ -246,7 +256,7 @@ export function activate(context: vscode.ExtensionContext) {
       fromEntities.delete(entity.name);
       toEntities.set(entity.name, entity);
     }
-    analyzeResult.saveToStorage(rootPath);
+    analyzeResult.saveToStorage();
   };
 
   vscode.commands.registerCommand(
@@ -315,7 +325,7 @@ export function activate(context: vscode.ExtensionContext) {
         isCustom: true,
       });
 
-      analyzeResult.saveToStorage(rootPath);
+      analyzeResult.saveToStorage();
     }
   );
 
@@ -348,7 +358,7 @@ export function activate(context: vscode.ExtensionContext) {
         isCustom: true,
       });
 
-      analyzeResult.saveToStorage(rootPath);
+      analyzeResult.saveToStorage();
     }
   );
 
@@ -382,7 +392,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
 
-    analyzeResult.saveToStorage(rootPath);
+    analyzeResult.saveToStorage();
   });
 
   vscode.commands.registerCommand(
@@ -426,7 +436,7 @@ export function activate(context: vscode.ExtensionContext) {
           for (let i of selectedItems) {
             i.inner.note = note;
           }
-          analyzeResult.saveToStorage(rootPath);
+          analyzeResult.saveToStorage();
         });
     }
   );
@@ -440,7 +450,7 @@ export function activate(context: vscode.ExtensionContext) {
       for (let i of selectedItems) {
         i.inner.note = "";
       }
-      analyzeResult.saveToStorage(rootPath);
+      analyzeResult.saveToStorage();
     }
   );
 

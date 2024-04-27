@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import vscode from "vscode";
 import path from "path";
 import fs from "fs";
+import assert from "assert";
 
 export type Entity = {
   selection?: Selection;
@@ -49,7 +50,7 @@ type Repository = {
 export class AnalyzeResult {
   private static _instance: AnalyzeResult;
 
-  private fileName: string = "analyze-result.json";
+  private resultPath: vscode.Uri | undefined;
   private repository?: Repository;
   private group: Map<string, Map<string, Entity>>;
   private refreshFn: () => void = () => { };
@@ -77,8 +78,8 @@ export class AnalyzeResult {
     return this.repository;
   }
 
-  setFileName(fileName: string) {
-    this.fileName = fileName;
+  setResultPath(path: vscode.Uri) {
+    this.resultPath = path;
   }
 
   clear() {
@@ -87,25 +88,22 @@ export class AnalyzeResult {
     }
   }
 
-  async loadFromStorage(rootPath: string): Promise<boolean> {
-    const resultPath = vscode.Uri.joinPath(getVSCodePath(rootPath), this.fileName);
-    if (!fs.existsSync(resultPath.fsPath)) {
+  async loadFromStorage(): Promise<boolean> {
+    assert(this.resultPath !== undefined, "Result path is not set");
+    if (!fs.existsSync(this.resultPath.fsPath)) {
       return false;
     }
-    let data = await vscode.workspace.fs.readFile(resultPath);
+    let data = await vscode.workspace.fs.readFile(this.resultPath);
     let newResult: AnalyzeResult = JSON.parse(data.toString(), reviver);
     Object.assign(this, newResult);
     this.refreshFn();
     return true;
   }
 
-  async saveToStorage(rootPath: string) {
-    const vscodePath = getVSCodePath(rootPath);
-    const resultPath = vscode.Uri.joinPath(vscodePath, this.fileName);
-
-    await vscode.workspace.fs.createDirectory(vscodePath);
+  async saveToStorage() {
+    assert(this.resultPath !== undefined, "Result path is not set");
     await vscode.workspace.fs.writeFile(
-      resultPath,
+      this.resultPath,
       Buffer.from(JSON.stringify(this, replacer))
     );
 
@@ -146,13 +144,6 @@ function reviver(key: string, value: any) {
     }
   }
   return value;
-}
-
-export function getVSCodePath(rootPath: string): vscode.Uri {
-  return vscode.Uri.joinPath(
-    vscode.Uri.file(rootPath),
-    ".vscode"
-  );
 }
 
 export function groupOperationTypes(

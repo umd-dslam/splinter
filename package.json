@@ -16,6 +16,11 @@
     "configuration": {
       "title": "Splinter",
       "properties": {
+        "splinter.rootDir": {
+          "type": "string",
+          "default": ".",
+          "definitions": "Root directory of the files to analyze"
+        },
         "splinter.batchSize": {
           "type": "number",
           "default": 50,
@@ -192,7 +197,7 @@
       },
       {
         "command": "splinter.reanalyze",
-        "title": "Re-analyze",
+        "title": "Reanalyze",
         "category": "Splinter",
         "icon": "$(sync)"
       }
