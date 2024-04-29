@@ -50,7 +50,7 @@ type Repository = {
 export class AnalyzeResult {
   private static _instance: AnalyzeResult;
 
-  private resultPath: vscode.Uri | undefined;
+  private resultPath: string | undefined;
   private repository?: Repository;
   private group: Map<string, Map<string, Entity>>;
   private refreshFn: () => void = () => { };
@@ -78,7 +78,7 @@ export class AnalyzeResult {
     return this.repository;
   }
 
-  setResultPath(path: vscode.Uri) {
+  setResultPath(path: string) {
     this.resultPath = path;
   }
 
@@ -90,11 +90,12 @@ export class AnalyzeResult {
 
   async loadFromStorage(): Promise<boolean> {
     assert(this.resultPath !== undefined, "Result path is not set");
-    if (!fs.existsSync(this.resultPath.fsPath)) {
+    if (!fs.existsSync(this.resultPath)) {
       return false;
     }
-    let data = await vscode.workspace.fs.readFile(this.resultPath);
-    let newResult: AnalyzeResult = JSON.parse(data.toString(), reviver);
+    const resultPath = vscode.Uri.file(this.resultPath);
+    const data = await vscode.workspace.fs.readFile(resultPath);
+    const newResult: AnalyzeResult = JSON.parse(data.toString(), reviver);
     Object.assign(this, newResult);
     this.refreshFn();
     return true;
@@ -102,8 +103,9 @@ export class AnalyzeResult {
 
   async saveToStorage() {
     assert(this.resultPath !== undefined, "Result path is not set");
+    const resultPath = vscode.Uri.file(this.resultPath);
     await vscode.workspace.fs.writeFile(
-      this.resultPath,
+      resultPath,
       Buffer.from(JSON.stringify(this, replacer))
     );
 

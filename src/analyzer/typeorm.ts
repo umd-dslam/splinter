@@ -1,4 +1,4 @@
-import vscode from "vscode";
+import vscode, { OutputChannel } from "vscode";
 import { AnalyzeResult, AnalyzeResultGroup } from "../model";
 import { Analyzer } from "./base";
 import {
@@ -21,7 +21,7 @@ export class TypeORMAnalyzer implements Analyzer {
     return "type-orm";
   }
 
-  async analyze(onMessage: (msg: string) => void) {
+  async analyze(onMessage: (msg: string) => void, outputChannel: OutputChannel) {
     if (this.proc !== null) {
       vscode.window.showErrorMessage("Analyze process is already running.");
       return false;
@@ -29,7 +29,8 @@ export class TypeORMAnalyzer implements Analyzer {
 
     // Create a temporary file to store the messages
     const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: ".json" });
-    console.log("Message file: ", tmpFile.name);
+    outputChannel.clear();
+    outputChannel.appendLine(`Message file: ${tmpFile.name}`);
 
     this.proc = child_process.spawn("npx", [
       "@ctring/splinter-eslint",
@@ -52,7 +53,7 @@ export class TypeORMAnalyzer implements Analyzer {
     });
 
     this.proc.stderr?.on("data", (data) => {
-      console.error(`${data}`);
+      outputChannel.append(`${data}`);
     });
 
     // Wait for the process to finish

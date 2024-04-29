@@ -1,4 +1,4 @@
-import vscode from "vscode";
+import vscode, { OutputChannel } from "vscode";
 import { AnalyzeResult, AnalyzeResultGroup } from "../model";
 import { Analyzer } from "./base";
 import child_process from "child_process";
@@ -71,7 +71,7 @@ export class DjangoAnalyzer implements Analyzer {
         return "django";
     }
 
-    async analyze(onMessage: (msg: string) => void) {
+    async analyze(onMessage: (msg: string) => void, outputChannel: OutputChannel) {
         if (this.proc !== null) {
             vscode.window.showErrorMessage("Analyze process is already running.");
             return false;
@@ -79,7 +79,8 @@ export class DjangoAnalyzer implements Analyzer {
 
         // Create a temporary file to store the messages
         const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: "django.json" });
-        console.log("Message file: ", tmpFile.name);
+        outputChannel.clear();
+        outputChannel.appendLine(`Message file: ${tmpFile.name}`);
 
         const args = [
             "-m",
@@ -107,7 +108,7 @@ export class DjangoAnalyzer implements Analyzer {
         });
 
         this.proc.stderr?.on("data", (data) => {
-            vscode.window.showErrorMessage(`${data}`);
+            outputChannel.append(`${data}`);
         });
 
         // Wait for the process to finish

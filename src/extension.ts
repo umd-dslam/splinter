@@ -1,4 +1,4 @@
-import vscode from "vscode";
+import vscode, { OutputChannel } from "vscode";
 import fs from "fs";
 import glob from 'glob';
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
@@ -35,7 +35,7 @@ async function setRepositoryInfo(rootPath: string) {
   result.setRepository({ url, hash });
 }
 
-function runAnalyzer(analyzer: Analyzer, rootPath: string) {
+function runAnalyzer(analyzer: Analyzer, rootPath: string, outputChannel: OutputChannel) {
   const config = vscode.workspace.getConfiguration("splinter");
 
   let analyzeResult = AnalyzeResult.getInstance();
@@ -61,7 +61,7 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string) {
         });
 
         // Do the analysis
-        let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
+        let ok = await analyzer.analyze((msg) => progress.report({ message: msg }), outputChannel);
         if (ok) {
           // Save the result 
           await analyzeResult.saveToStorage();
@@ -87,6 +87,8 @@ export function activate(context: vscode.ExtensionContext) {
       : "");
   const rootPath = vscode.Uri.joinPath(workspacePath,
     vscode.workspace.getConfiguration("splinter").get("rootDir") as string).fsPath;
+
+  const outputChannel = vscode.window.createOutputChannel("Splinter");
 
   /**********************************************************/
   /*             Set up the analyzer and views              */
@@ -143,7 +145,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscodePath,
     `${analyzer!.getName()}-results.json`
   );
-  analyzeResult.setResultPath(resultPath);
+  analyzeResult.setResultPath(resultPath.fsPath);
 
   const infoProvider = new InfoProvider();
   context.subscriptions.push(
@@ -184,7 +186,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // Run the initial analysis
-  runAnalyzer(analyzer, rootPath);
+  runAnalyzer(analyzer, rootPath, outputChannel);
 
   /**********************************************************/
   /*                  Register commands                     */
@@ -202,7 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     analyzeResult.clear();
 
-    runAnalyzer(analyzer!, rootPath);
+    runAnalyzer(analyzer!, rootPath, outputChannel);
   });
 
   vscode.commands.registerCommand("splinter.entity.add", async () => {
