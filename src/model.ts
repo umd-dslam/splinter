@@ -219,11 +219,11 @@ export function countTags(entities: Entity[]): Map<string, number> {
   return result;
 }
 
-export function getCurrentSelection(rootPath: string): Selection | undefined {
+export function getCurrentSelection(workspacePath: vscode.Uri): Selection | undefined {
   const activeTextEditor = vscode.window.activeTextEditor;
   let selection: Selection | undefined;
   if (activeTextEditor) {
-    let filePath = path.relative(rootPath, activeTextEditor.document.uri.path);
+    let filePath = path.relative(workspacePath.fsPath, activeTextEditor.document.uri.path);
     let editorSelection = activeTextEditor.selection;
     selection = {
       filePath,

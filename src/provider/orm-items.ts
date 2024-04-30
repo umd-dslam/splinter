@@ -47,13 +47,13 @@ export class ORMItemProvider
   vscode.TreeDataProvider<ORMItem>,
   vscode.TreeDragAndDropController<ORMItem> {
   constructor(
-    private rootPath: string,
+    private workspacePath: vscode.Uri,
     private resultGroup: AnalyzeResultGroup
   ) { }
 
   getTreeItem(item: ORMItem): vscode.TreeItem {
     let relativePath = item.inner.selection
-      ? path.relative(this.rootPath, item.inner.selection.filePath)
+      ? path.relative(this.workspacePath.fsPath, item.inner.selection.filePath)
       : "";
     let treeItem = new vscode.TreeItem(item.inner.name);
 
@@ -128,7 +128,7 @@ export class ORMItemProvider
         arguments: [
           new vscode.Location(
             vscode.Uri.joinPath(
-              vscode.Uri.parse(this.rootPath),
+              this.workspacePath,
               item.inner.selection.filePath
             ),
             new vscode.Range(

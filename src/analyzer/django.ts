@@ -63,7 +63,7 @@ class Message {
 export class DjangoAnalyzer implements Analyzer {
     private proc: child_process.ChildProcess | null;
 
-    constructor(private rootPath: string, private result: AnalyzeResult, private exclude: [string]) {
+    constructor(private workspacePath: vscode.Uri, private result: AnalyzeResult) {
         this.proc = null;
     }
 
@@ -77,20 +77,26 @@ export class DjangoAnalyzer implements Analyzer {
             return false;
         }
 
+        const rootPath = vscode.Uri.joinPath(this.workspacePath,
+            vscode.workspace.getConfiguration("splinter").get("rootDir") as string).fsPath;
+        const exclude = vscode.workspace.getConfiguration("splinter").get("exclude") as [string];
+
         // Create a temporary file to store the messages
         const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: "django.json" });
         outputChannel.clear();
+        outputChannel.appendLine(`Analyzing Django project at: ${rootPath}`);
+        outputChannel.appendLine(`Excluding files: ${exclude.join(", ")}`);
         outputChannel.appendLine(`Message file: ${tmpFile.name}`);
 
         const args = [
             "-m",
             "splinter",
-            this.rootPath,
+            rootPath,
             "--output",
             tmpFile.name,
         ];
 
-        for (const ex of this.exclude) {
+        for (const ex of exclude) {
             args.push("--exclude-glob");
             args.push(ex);
         }
@@ -98,7 +104,7 @@ export class DjangoAnalyzer implements Analyzer {
         this.proc = child_process.spawn("python3", args);
 
         if (this.proc === null) {
-            console.error("Failed to spawn the analyze process.");
+            outputChannel.appendLine("Failed to spawn the analyze process.");
             return false;
         }
 
@@ -154,7 +160,7 @@ export class DjangoAnalyzer implements Analyzer {
                 }
                 entities.set(content.name, {
                     selection: {
-                        filePath: path.relative(this.rootPath, msg.filePath),
+                        filePath: path.relative(this.workspacePath.fsPath, msg.filePath),
                         fromLine: msg.fromLine - 1,
                         toLine: msg.toLine - 1,
                         fromColumn: msg.fromColumn,
@@ -180,7 +186,7 @@ export class DjangoAnalyzer implements Analyzer {
 
         for (const msg of messages) {
             const content = msg.content;
-            const filePath = path.relative(this.rootPath, msg.filePath);
+            const filePath = path.relative(this.workspacePath.fsPath, msg.filePath);
             const selection = {
                 filePath,
                 fromLine: msg.fromLine - 1,

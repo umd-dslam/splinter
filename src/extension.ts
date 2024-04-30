@@ -11,7 +11,7 @@ import { GitExtension } from "./@types/git";
 import { Entity, getCurrentSelection } from "./model";
 
 // Sets the git hash and repository URL in the result
-async function setRepositoryInfo(rootPath: string) {
+async function setRepositoryInfo(workspacePath: vscode.Uri) {
   const gitExtension = vscode.extensions.getExtension("vscode.git") as
     | vscode.Extension<GitExtension>
     | undefined;
@@ -21,7 +21,7 @@ async function setRepositoryInfo(rootPath: string) {
   }
   const api = gitExtension.exports.getAPI(1);
 
-  const repo = await api.openRepository(vscode.Uri.file(rootPath));
+  const repo = await api.openRepository(workspacePath);
   if (!repo) {
     return;
   }
@@ -35,7 +35,7 @@ async function setRepositoryInfo(rootPath: string) {
   result.setRepository({ url, hash });
 }
 
-function runAnalyzer(analyzer: Analyzer, rootPath: string, outputChannel: OutputChannel) {
+function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri, outputChannel: OutputChannel) {
   const config = vscode.workspace.getConfiguration("splinter");
 
   let analyzeResult = AnalyzeResult.getInstance();
@@ -53,7 +53,7 @@ function runAnalyzer(analyzer: Analyzer, rootPath: string, outputChannel: Output
 
       if (!(await analyzeResult.loadFromStorage())) {
         // If the result is not found, start a new analysis
-        await setRepositoryInfo(rootPath);
+        await setRepositoryInfo(workspacePath);
 
         // Set up the cancellation
         cancel.onCancellationRequested(() => {
@@ -85,8 +85,6 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.workspace.workspaceFolders.length > 0
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "");
-  const rootPath = vscode.Uri.joinPath(workspacePath,
-    vscode.workspace.getConfiguration("splinter").get("rootDir") as string).fsPath;
 
   const outputChannel = vscode.window.createOutputChannel("Splinter");
 
@@ -98,8 +96,8 @@ export function activate(context: vscode.ExtensionContext) {
   if (language === "auto") {
     // Try to detect the language by counting the number of file types: *.ts and *.py
 
-    const tsCount = glob.sync('**/**.ts', { cwd: rootPath }).length;
-    const pyCount = glob.sync('**/**.py', { cwd: rootPath }).length;
+    const tsCount = glob.sync('**/**.ts', { cwd: workspacePath.fsPath }).length;
+    const pyCount = glob.sync('**/**.py', { cwd: workspacePath.fsPath }).length;
 
     if (tsCount + pyCount === 0) {
       vscode.window.showErrorMessage("No TypeScript or Python files found in the project.");
@@ -114,25 +112,21 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   let analyzeResult = AnalyzeResult.getInstance();
-  const batchSize = vscode.workspace.getConfiguration("splinter").get("batchSize") as number;
-  const exclude = vscode.workspace.getConfiguration("splinter").get("exclude") as [string];
 
   let analyzer: Analyzer | null = null;
   switch (language) {
     case "python":
       analyzer = new DjangoAnalyzer(
-        rootPath,
+        workspacePath,
         analyzeResult,
-        exclude
       );
       break;
 
     case "typescript":
     default:
       analyzer = new TypeORMAnalyzer(
-        rootPath,
+        workspacePath,
         analyzeResult,
-        batchSize,
       );
       break;
   }
@@ -156,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const recognizedProvider = new ORMItemProvider(
-    rootPath,
+    workspacePath,
     AnalyzeResultGroup.recognized
   );
   context.subscriptions.push(
@@ -168,7 +162,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const unknownProvider = new ORMItemProvider(
-    rootPath,
+    workspacePath,
     AnalyzeResultGroup.unknown
   );
   context.subscriptions.push(
@@ -186,7 +180,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // Run the initial analysis
-  runAnalyzer(analyzer, rootPath, outputChannel);
+  runAnalyzer(analyzer, workspacePath, outputChannel);
 
   /**********************************************************/
   /*                  Register commands                     */
@@ -204,7 +198,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     analyzeResult.clear();
 
-    runAnalyzer(analyzer!, rootPath, outputChannel);
+    runAnalyzer(analyzer!, workspacePath, outputChannel);
   });
 
   vscode.commands.registerCommand("splinter.entity.add", async () => {
@@ -233,7 +227,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     entities.set(name, {
       selection:
-        setSelection === "yes" ? getCurrentSelection(rootPath) : undefined,
+        setSelection === "yes" ? getCurrentSelection(workspacePath) : undefined,
       name,
       operations: [],
       note: "",
@@ -319,7 +313,7 @@ export function activate(context: vscode.ExtensionContext) {
       const entity = item.inner as Entity;
       entity.operations.push({
         selection:
-          setSelection === "yes" ? getCurrentSelection(rootPath) : undefined,
+          setSelection === "yes" ? getCurrentSelection(workspacePath) : undefined,
         name,
         arguments: [],
         type: type as "read" | "write" | "other" | "transaction",
@@ -354,7 +348,7 @@ export function activate(context: vscode.ExtensionContext) {
       const operation = item.inner as Operation;
       operation.arguments.push({
         selection:
-          setSelection === "yes" ? getCurrentSelection(rootPath) : undefined,
+          setSelection === "yes" ? getCurrentSelection(workspacePath) : undefined,
         name,
         note: "",
         isCustom: true,

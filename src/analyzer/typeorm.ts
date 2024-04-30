@@ -13,7 +13,7 @@ import tmp from "tmp";
 export class TypeORMAnalyzer implements Analyzer {
   private proc: child_process.ChildProcess | null;
 
-  constructor(private rootPath: string, private result: AnalyzeResult, private batchSize: number) {
+  constructor(private workspacePath: vscode.Uri, private result: AnalyzeResult) {
     this.proc = null;
   }
 
@@ -27,20 +27,26 @@ export class TypeORMAnalyzer implements Analyzer {
       return false;
     }
 
+    const rootPath = vscode.Uri.joinPath(this.workspacePath,
+      vscode.workspace.getConfiguration("splinter").get("rootDir") as string).fsPath;
+    const batchSize = vscode.workspace.getConfiguration("splinter").get("batchSize") as number;
+
     // Create a temporary file to store the messages
     const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: ".json" });
     outputChannel.clear();
+    outputChannel.appendLine(`Analyzing the project at ${rootPath}`);
+    outputChannel.appendLine(`Batch size: ${batchSize}`);
     outputChannel.appendLine(`Message file: ${tmpFile.name}`);
 
     this.proc = child_process.spawn("npx", [
       "@ctring/splinter-eslint",
-      this.rootPath,
+      rootPath,
       "--output",
       tmpFile.name,
       "--batch",
-      `${this.batchSize}`
+      `${batchSize}`
     ], {
-      cwd: this.rootPath,
+      cwd: rootPath,
     });
 
     if (this.proc === null) {
