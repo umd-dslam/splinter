@@ -257,23 +257,33 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "splinter.entity.moveToUnknown",
-    (item: ORMItem) => {
-      moveEntity(
-        item,
-        AnalyzeResultGroup.recognized,
-        AnalyzeResultGroup.unknown
-      );
+    (item: ORMItem, items: ORMItem[]) => {
+      if (!items) {
+        items = [item];
+      }
+      for (let item of items) {
+        moveEntity(
+          item,
+          AnalyzeResultGroup.recognized,
+          AnalyzeResultGroup.unknown
+        );
+      }
     }
   );
 
   vscode.commands.registerCommand(
     "splinter.entity.moveToRecognized",
-    (item: ORMItem) => {
-      moveEntity(
-        item,
-        AnalyzeResultGroup.unknown,
-        AnalyzeResultGroup.recognized
-      );
+    (item: ORMItem, items: ORMItem[]) => {
+      if (!items) {
+        items = [item];
+      }
+      for (let item of items) {
+        moveEntity(
+          item,
+          AnalyzeResultGroup.unknown,
+          AnalyzeResultGroup.recognized
+        );
+      }
     }
   );
 
