@@ -302,6 +302,18 @@ export class DjangoAnalyzer implements Analyzer {
                             }
                         }
 
+                        if (calleeType === "FilterSet") {
+                            const baseEntityName = content.name.match(/(\w+)Filter$/)?.[1];
+                            if (baseEntityName !== undefined && baseEntityNames.has(baseEntityName)) {
+                                const entityName = baseEntityNames.get(baseEntityName);
+                                if (entityName !== null && entityName !== undefined) {
+                                    const entity = entities.get(entityName)!;
+                                    entity.operations.push(operation);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
                     }
 
                     // Exact match of the entity name. This might cause false positives if
