@@ -201,6 +201,12 @@ export function activate(context: vscode.ExtensionContext) {
     runAnalyzer(analyzer!, workspacePath, outputChannel);
   });
 
+  vscode.commands.registerCommand("splinter.reload", async () => {
+    analyzeResult.clear();
+    await analyzeResult.loadFromStorage();
+    analyzeResult.refreshViews();
+  });
+
   vscode.commands.registerCommand("splinter.entity.add", async () => {
     const name = await vscode.window.showInputBox({
       placeHolder: "Enter the name of the entity to add",

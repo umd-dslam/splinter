@@ -200,6 +200,12 @@
         "title": "Reanalyze",
         "category": "Splinter",
         "icon": "$(sync)"
+      },
+      {
+        "command": "splinter.reload",
+        "title": "Reload from Saved File",
+        "category": "Splinter",
+        "icon": "$(symbol-file)"
       }
     ]
   },
