@@ -150,7 +150,7 @@ export class ORMItemProvider
       if (item.type === "entity") {
         let inner = item.inner as Entity;
         return inner.operations
-          .sort((a, b) => (a.type < b.type ? -1 : 1))
+          .sort((a, b) => (a.name < b.name ? -1 : 1))
           .map((operation, index) => ({
             type: "operation",
             inner: operation,

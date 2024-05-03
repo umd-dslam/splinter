@@ -219,9 +219,9 @@ export class DjangoAnalyzer implements Analyzer {
                 let found = false;
                 for (const calleeType of content.objectTypes) {
                     // Parse the entity name in the pattern "django.db.models.manager.Manager[ModelName]"
-                    var entityName = calleeType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];
-                    var entity =
-                        entityName === undefined ? entityName : entities.get(entityName);
+                    let entityName = calleeType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];
+                    let entity =
+                        entityName === undefined ? undefined : entities.get(entityName);
                     if (entity !== undefined) {
                         entity.operations.push(operation);
                         found = true;
@@ -231,7 +231,7 @@ export class DjangoAnalyzer implements Analyzer {
                     // Parse the entity name in the pattern "django.db.models.manager.BaseManager[ModelName]"
                     entityName = calleeType.match(/django.db.models.manager.BaseManager\[(.*)\]/)?.[1];
                     entity =
-                        entityName === undefined ? entityName : entities.get(entityName);
+                        entityName === undefined ? undefined : entities.get(entityName);
                     if (entity !== undefined) {
                         entity.operations.push(operation);
                         found = true;
@@ -239,8 +239,8 @@ export class DjangoAnalyzer implements Analyzer {
                     }
 
                     // Parse the entity names in the pattern "django.db.models.query._QuerySet[ModelName, ...]"
-                    let entityNamesStr = calleeType.match(/django.db.models.query._QuerySet\[(.*)\]/)?.[1];
-                    let entityNames = entityNamesStr === undefined ? [] : entityNamesStr.split(", ");
+                    const entityNamesStr = calleeType.match(/django.db.models.query._QuerySet\[(.*)\]/)?.[1];
+                    const entityNames = entityNamesStr === undefined ? [] : entityNamesStr.split(", ");
                     for (const entityName of entityNames) {
                         entity = entities.get(entityName);
                         if (entity !== undefined) {
