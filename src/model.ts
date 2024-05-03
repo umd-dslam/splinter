@@ -196,7 +196,7 @@ const TAGS = [
   "1shot-easy",
   "1shot-hard",
   "mshot",
-  "phantom",
+  "no-phantom",
 ];
 
 export function countTags(entities: Entity[]): Map<string, number> {

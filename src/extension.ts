@@ -423,7 +423,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "splinter.item.addNote",
+    "splinter.item.editNote",
     (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
       if (!selectedItems) {
         selectedItems = [selectedItem];
@@ -447,6 +447,35 @@ export function activate(context: vscode.ExtensionContext) {
           }
           for (let i of selectedItems) {
             i.inner.note = note;
+          }
+          analyzeResult.saveToStorage();
+        });
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.item.appendNote",
+    (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
+      if (!selectedItems) {
+        selectedItems = [selectedItem];
+      }
+
+      var placeHolder = "Append note";
+      if (selectedItems.length > 1) {
+        placeHolder = `Append note to ${selectedItems.length} items`;
+      }
+
+      vscode.window
+        .showInputBox({
+          placeHolder,
+          value: "",
+        })
+        .then((note) => {
+          if (!note) {
+            return;
+          }
+          for (let i of selectedItems) {
+            i.inner.note += note;
           }
           analyzeResult.saveToStorage();
         });

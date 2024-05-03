@@ -83,7 +83,12 @@
     "menus": {
       "view/item/context": [
         {
-          "command": "splinter.item.addNote",
+          "command": "splinter.item.editNote",
+          "when": "view == recognized || view == unknown",
+          "group": "inline"
+        },
+        {
+          "command": "splinter.item.appendNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
         },
@@ -93,14 +98,19 @@
           "group": "inline"
         },
         {
-          "command": "splinter.item.addNote",
+          "command": "splinter.item.editNote",
           "when": "view == recognized || view == unknown",
           "group": "1_note@1"
         },
         {
+          "command": "splinter.item.appendNote",
+          "when": "view == recognized || view == unknown",
+          "group": "1_note@2"
+        },
+        {
           "command": "splinter.item.clearNote",
           "when": "(view == recognized || view == unknown) && viewItem =~ /hasNote/",
-          "group": "1_note@2"
+          "group": "1_note@3"
         },
         {
           "command": "splinter.entity.moveToUnknown",
@@ -160,8 +170,13 @@
         "title": "Copy"
       },
       {
-        "command": "splinter.item.addNote",
-        "title": "Add Note",
+        "command": "splinter.item.editNote",
+        "title": "Edit Note",
+        "icon": "$(pencil)"
+      },
+      {
+        "command": "splinter.item.appendNote",
+        "title": "Append Note",
         "icon": "$(note)"
       },
       {
