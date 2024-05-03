@@ -181,8 +181,25 @@ export class DjangoAnalyzer implements Analyzer {
     }
 
     private collectOperations(messages: Message[]) {
-        let entities = this.result.getGroup(AnalyzeResultGroup.recognized);
-        let unknowns = this.result.getGroup(AnalyzeResultGroup.unknown);
+        const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        const unknowns = this.result.getGroup(AnalyzeResultGroup.unknown);
+
+        const baseEntityNames: Map<string, string | null> = new Map();
+        for (const name of entities.keys()) {
+            if (name.startsWith("[")) {
+                continue;
+            }
+            let baseName = name;
+            const lastDot = name.lastIndexOf(".");
+            if (lastDot !== -1) {
+                baseName = name.substring(lastDot + 1);
+            }
+            if (baseEntityNames.has(baseName)) {
+                baseEntityNames.set(baseName, null);
+            } else {
+                baseEntityNames.set(baseName, name);
+            }
+        }
 
         for (const msg of messages) {
             const content = msg.content;
@@ -219,46 +236,82 @@ export class DjangoAnalyzer implements Analyzer {
                 let found = false;
                 for (const calleeType of content.objectTypes) {
                     // Parse the entity name in the pattern "django.db.models.manager.Manager[ModelName]"
-                    let entityName = calleeType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];
-                    let entity =
-                        entityName === undefined ? undefined : entities.get(entityName);
-                    if (entity !== undefined) {
-                        entity.operations.push(operation);
-                        found = true;
-                        break;
-                    }
-
-                    // Parse the entity name in the pattern "django.db.models.manager.BaseManager[ModelName]"
-                    entityName = calleeType.match(/django.db.models.manager.BaseManager\[(.*)\]/)?.[1];
-                    entity =
-                        entityName === undefined ? undefined : entities.get(entityName);
-                    if (entity !== undefined) {
-                        entity.operations.push(operation);
-                        found = true;
-                        break;
-                    }
-
-                    // Parse the entity names in the pattern "django.db.models.query._QuerySet[ModelName, ...]"
-                    const entityNamesStr = calleeType.match(/django.db.models.query._QuerySet\[(.*)\]/)?.[1];
-                    const entityNames = entityNamesStr === undefined ? [] : entityNamesStr.split(", ");
-                    for (const entityName of entityNames) {
-                        entity = entities.get(entityName);
-                        if (entity !== undefined) {
+                    {
+                        const entityName = calleeType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];
+                        if (entityName !== undefined && entities.has(entityName)) {
+                            const entity = entities.get(entityName)!;
                             entity.operations.push(operation);
                             found = true;
                             break;
                         }
                     }
-                    if (found) {
-                        break;
+
+                    // Parse the entity name in the pattern "django.db.models.manager.BaseManager[ModelName]"
+                    {
+                        const entityName = calleeType.match(/django.db.models.manager.BaseManager\[(.*)\]/)?.[1];
+                        if (entityName !== undefined && entities.has(entityName)) {
+                            const entity = entities.get(entityName)!;
+                            entity.operations.push(operation);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    // Parse the entity names in the pattern "django.db.models.query._QuerySet[ModelName, ...]"
+                    {
+                        const entityNamesStr = calleeType.match(/django.db.models.query._QuerySet\[(.*)\]/)?.[1];
+                        const entityNames = entityNamesStr === undefined ? [] : entityNamesStr.split(", ");
+                        for (const entityName of entityNames) {
+                            const entity = entities.get(entityName);
+                            if (entity !== undefined) {
+                                entity.operations.push(operation);
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) {
+                            break;
+                        }
+                    }
+
+                    // Match with the unique base name of the entity
+                    {
+                        const baseEntityName = calleeType.match(/(\w+)Manager$/)?.[1];
+                        if (baseEntityName !== undefined && baseEntityNames.has(baseEntityName)) {
+                            const entityName = baseEntityNames.get(baseEntityName);
+                            if (entityName !== null && entityName !== undefined) {
+                                const entity = entities.get(entityName)!;
+                                entity.operations.push(operation);
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (["django.db.models.query._QuerySet[Any, Any]", "django.db.models.manager.Manager[Any]"].includes(calleeType)) {
+                            let baseEntityName = content.object;
+                            let firstDot = baseEntityName.indexOf(".");
+                            if (firstDot !== -1) {
+                                baseEntityName = baseEntityName.substring(0, firstDot);
+                            }
+                            const entityName = baseEntityNames.get(baseEntityName);
+                            if (entityName !== undefined && entityName !== null) {
+                                const entity = entities.get(entityName)!;
+                                entity.operations.push(operation);
+                                found = true;
+                                break;
+                            }
+                        }
+
                     }
 
                     // Exact match of the entity name. This might cause false positives if
                     // a non-entity callee happens to have the same name as an entity.
-                    if (entities.has(calleeType)) {
-                        entities.get(calleeType)!.operations.push(operation);
-                        found = true;
-                        break;
+                    {
+                        if (entities.has(calleeType)) {
+                            entities.get(calleeType)!.operations.push(operation);
+                            found = true;
+                            break;
+                        }
                     }
                 }
 
