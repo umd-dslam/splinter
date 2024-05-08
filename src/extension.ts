@@ -526,13 +526,15 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.autoAnnotate",
     async () => {
-      const tag = await vscode.window.showQuickPick(analyzer!.supportedAutoAnnotateTags(), {
-        canPickMany: false,
-        placeHolder: "Select the tag to auto-annotate",
+      const tags = await vscode.window.showQuickPick(analyzer!.supportedAutoAnnotateTags(), {
+        canPickMany: true,
+        placeHolder: "Select the tag(s) to auto-annotate",
       });
 
-      if (tag) {
-        analyzer!.autoAnnotate(tag);
+      if (tags) {
+        for (const tag of tags) {
+          analyzer!.autoAnnotate(tag);
+        }
         await analyzeResult.saveToStorage();
         analyzeResult.refreshViews();
       }
