@@ -187,8 +187,8 @@ export function groupOperationTypes(
 
 export const FULL_SCAN = "full-scan";
 export const CDA_TRAN = "cda-tran";
-const NON_TRIVIAL = "non-trivial";
-const NON_EQ = "non-eq";
+export const NON_TRIVIAL = "non-trivial";
+export const NON_EQ = "non-eq";
 const CDA_DEP = "cda-dep";
 const ONESHOT_EASY = "1shot-easy";
 const ONESHOT_HARD = "1shot-hard";

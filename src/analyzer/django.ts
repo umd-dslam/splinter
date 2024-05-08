@@ -1,5 +1,5 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, FULL_SCAN, appendNote } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote } from "../model";
 import { Analyzer } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
@@ -365,7 +365,7 @@ export class DjangoAnalyzer implements Analyzer {
     }
 
     supportedAutoAnnotateTags(): string[] {
-        return [FULL_SCAN, CDA_TRAN];
+        return [FULL_SCAN, CDA_TRAN, NON_EQ, NON_TRIVIAL];
     }
 
     autoAnnotate(tag: string) {
@@ -375,6 +375,10 @@ export class DjangoAnalyzer implements Analyzer {
                 break;
             case CDA_TRAN:
                 this.autoAnnotateCdaTran();
+                break;
+            case NON_EQ:
+            case NON_TRIVIAL:
+                this.autoannotateNonEqNonTrivial(tag);
                 break;
             default:
                 vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
@@ -444,6 +448,63 @@ export class DjangoAnalyzer implements Analyzer {
                 }
                 if (cdaTran) {
                     entity.note = appendNote(entity.note, `${CDA_TRAN}(a)`);
+                }
+            }
+        }
+    }
+
+    autoannotateNonEqNonTrivial(tag: string) {
+        const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        for (const entity of entities.values()) {
+            for (const operation of entity.operations) {
+                if (!operation.note.includes(tag)) {
+                    let hasTag = false;
+                    for (const arg of operation.arguments) {
+                        const parts = arg.name.split("__");
+                        const lookup = parts[parts.length - 1];
+                        switch (tag) {
+                            case NON_EQ:
+                                if ([
+                                    "contains",
+                                    "icontains",
+                                    "startswith",
+                                    "istartswith",
+                                    "endswith",
+                                    "iendswith",
+                                    "gt",
+                                    "gte",
+                                    "lt",
+                                    "lte",
+                                    "range",
+                                    "regex",
+                                    "iregex",
+                                ].includes(lookup)) {
+                                    hasTag = true;
+                                }
+                                break;
+                            case NON_TRIVIAL:
+                                if ([
+                                    "iexact",
+                                    "contains",
+                                    "icontains",
+                                    "startswith",
+                                    "istartswith",
+                                    "endswith",
+                                    "iendswith",
+                                    "regex",
+                                    "iregex",
+                                ].includes(lookup)) {
+                                    hasTag = true;
+                                }
+                                break;
+                            default:
+                                vscode.window.showErrorMessage(`Unsupported tag: ${tag}`);
+                                return;
+                        }
+                    }
+                    if (hasTag) {
+                        operation.note = appendNote(operation.note, `${tag}(a)`);
+                    }
                 }
             }
         }
