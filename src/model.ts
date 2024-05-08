@@ -185,11 +185,10 @@ export function groupOperationTypes(
   return result;
 }
 
+export const FULL_SCAN = "full-scan";
 const CDA_TRAN = "cda-tran";
 const NON_TRIVIAL = "non-trivial";
 const NON_EQ = "non-eq";
-const FULL_SCAN = "full-scan";
-const JOIN = "join";
 const CDA_DEP = "cda-dep";
 const ONESHOT_EASY = "1shot-easy";
 const ONESHOT_HARD = "1shot-hard";
@@ -198,14 +197,13 @@ const NO_PHANTOM = "no-phantom";
 
 export const TAGS = [
   CDA_TRAN,
-  NON_TRIVIAL,
-  NON_EQ,
-  FULL_SCAN,
-  JOIN,
   CDA_DEP,
   ONESHOT_EASY,
   ONESHOT_HARD,
   MSHOT,
+  NON_EQ,
+  NON_TRIVIAL,
+  FULL_SCAN,
   NO_PHANTOM,
 ];
 

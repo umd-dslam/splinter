@@ -221,6 +221,11 @@
         "title": "Reload from Saved File",
         "category": "Splinter",
         "icon": "$(symbol-file)"
+      },
+      {
+        "command": "splinter.autoAnnotate",
+        "title": "Auto annotate",
+        "category": "Splinter"
       }
     ]
   },

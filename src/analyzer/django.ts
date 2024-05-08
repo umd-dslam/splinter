@@ -1,5 +1,5 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, FULL_SCAN } from "../model";
 import { Analyzer } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
@@ -362,5 +362,36 @@ export class DjangoAnalyzer implements Analyzer {
                 }
             }
         }
+    }
+
+    autoAnnotate(tag: string) {
+        switch (tag) {
+            case FULL_SCAN:
+                const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+                for (const entity of entities.values()) {
+                    if (!entity.note.includes(FULL_SCAN)) {
+                        let hasFullScan = false;
+                        for (const operation of entity.operations) {
+                            if (operation.name.endsWith(".all")) {
+                                hasFullScan = true;
+                                break;
+                            }
+                        }
+                        if (hasFullScan) {
+                            if (entity.note) {
+                                entity.note += " ";
+                            }
+                            entity.note += `${FULL_SCAN}(a)`;
+                        }
+                    }
+                }
+                break;
+            default:
+                vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
+        }
+    }
+
+    supportedAutoAnnotateTags(): string[] {
+        return [FULL_SCAN];
     }
 }

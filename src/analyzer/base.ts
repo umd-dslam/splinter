@@ -4,4 +4,7 @@ export interface Analyzer {
   analyze: (onMessage: (msg: string) => void, outputChannel: OutputChannel) => Promise<boolean>;
   cancel: () => void;
   getName: () => string;
+
+  autoAnnotate: (tag: string) => void;
+  supportedAutoAnnotateTags: () => string[];
 }

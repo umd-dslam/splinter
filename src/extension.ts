@@ -137,7 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
   }
   const resultPath = vscode.Uri.joinPath(
     vscodePath,
-    `${analyzer!.getName()}-results.json`
+    `${analyzer.getName()}-results.json`
   );
   analyzeResult.setResultPath(resultPath.fsPath);
 
@@ -523,6 +523,22 @@ export function activate(context: vscode.ExtensionContext) {
           .join("\n");
         clipboardy.default.writeSync(combined);
       });
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.autoAnnotate",
+    async () => {
+      const tag = await vscode.window.showQuickPick(analyzer!.supportedAutoAnnotateTags(), {
+        canPickMany: false,
+        placeHolder: "Select the tag to auto-annotate",
+      });
+
+      if (tag) {
+        analyzer!.autoAnnotate(tag);
+        await analyzeResult.saveToStorage();
+        analyzeResult.refreshViews();
+      }
     }
   );
 }

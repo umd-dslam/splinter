@@ -278,7 +278,8 @@ export class TypeORMAnalyzer implements Analyzer {
     }
   }
 
-  getSaveFileName() {
-    return "typeorm-analyze-result.json";
+  autoAnnotate(tag: string) { }
+  supportedAutoAnnotateTags() {
+    return [];
   }
 }
