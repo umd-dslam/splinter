@@ -83,12 +83,12 @@
     "menus": {
       "view/item/context": [
         {
-          "command": "splinter.item.editNote",
+          "command": "splinter.item.addTag",
           "when": "view == recognized || view == unknown",
           "group": "inline"
         },
         {
-          "command": "splinter.item.appendNote",
+          "command": "splinter.item.editNote",
           "when": "view == recognized || view == unknown",
           "group": "inline"
         },
@@ -98,12 +98,12 @@
           "group": "inline"
         },
         {
-          "command": "splinter.item.editNote",
+          "command": "splinter.item.addTag",
           "when": "view == recognized || view == unknown",
           "group": "1_note@1"
         },
         {
-          "command": "splinter.item.appendNote",
+          "command": "splinter.item.editNote",
           "when": "view == recognized || view == unknown",
           "group": "1_note@2"
         },
@@ -175,9 +175,9 @@
         "icon": "$(pencil)"
       },
       {
-        "command": "splinter.item.appendNote",
-        "title": "Append Note",
-        "icon": "$(note)"
+        "command": "splinter.item.addTag",
+        "title": "Add Tag",
+        "icon": "$(tag)"
       },
       {
         "command": "splinter.item.clearNote",

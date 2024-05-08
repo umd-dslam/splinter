@@ -185,18 +185,28 @@ export function groupOperationTypes(
   return result;
 }
 
-const TAGS = [
-  "cda-tran",
-  "non-trivial",
-  "non-eq",
-  "full-scan",
-  "join",
-  "cor-subquery",
-  "cda-dep",
-  "1shot-easy",
-  "1shot-hard",
-  "mshot",
-  "no-phantom",
+const CDA_TRAN = "cda-tran";
+const NON_TRIVIAL = "non-trivial";
+const NON_EQ = "non-eq";
+const FULL_SCAN = "full-scan";
+const JOIN = "join";
+const CDA_DEP = "cda-dep";
+const ONESHOT_EASY = "1shot-easy";
+const ONESHOT_HARD = "1shot-hard";
+const MSHOT = "mshot";
+const NO_PHANTOM = "no-phantom";
+
+export const TAGS = [
+  CDA_TRAN,
+  NON_TRIVIAL,
+  NON_EQ,
+  FULL_SCAN,
+  JOIN,
+  CDA_DEP,
+  ONESHOT_EASY,
+  ONESHOT_HARD,
+  MSHOT,
+  NO_PHANTOM,
 ];
 
 export function countTags(entities: Entity[]): Map<string, number> {

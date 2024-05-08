@@ -8,7 +8,7 @@ import { AnalyzeResult, AnalyzeResultGroup, Operation } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
-import { Entity, getCurrentSelection } from "./model";
+import { Entity, getCurrentSelection, TAGS } from "./model";
 
 // Sets the git hash and repository URL in the result
 async function setRepositoryInfo(workspacePath: vscode.Uri) {
@@ -454,31 +454,34 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
-    "splinter.item.appendNote",
-    (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
+    "splinter.item.addTag",
+    async (selectedItem: ORMItem, selectedItems: ORMItem[]) => {
       if (!selectedItems) {
         selectedItems = [selectedItem];
       }
 
-      var placeHolder = "Append note";
+      let placeHolder = "Append note";
       if (selectedItems.length > 1) {
         placeHolder = `Append note to ${selectedItems.length} items`;
       }
 
-      vscode.window
-        .showInputBox({
-          placeHolder,
-          value: "",
-        })
-        .then((note) => {
-          if (!note) {
-            return;
+      const note = await vscode.window
+        .showQuickPick(
+          TAGS,
+          {
+            canPickMany: false,
+            placeHolder,
+          });
+
+      if (note) {
+        for (let i of selectedItems) {
+          if (i.inner.note) {
+            i.inner.note += " ";
           }
-          for (let i of selectedItems) {
-            i.inner.note += note;
-          }
-          analyzeResult.saveToStorage();
-        });
+          i.inner.note += note;
+        }
+        analyzeResult.saveToStorage();
+      }
     }
   );
 
