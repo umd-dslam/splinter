@@ -1,7 +1,7 @@
 import { OutputChannel } from "vscode";
 
 export interface Analyzer {
-  analyze: (onMessage: (msg: string) => void, outputChannel: OutputChannel) => Promise<boolean>;
+  analyze: (onMessage: (msg: string) => void) => Promise<boolean>;
   cancel: () => void;
   getName: () => string;
 

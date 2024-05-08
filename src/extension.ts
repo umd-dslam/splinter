@@ -35,7 +35,7 @@ async function setRepositoryInfo(workspacePath: vscode.Uri) {
   result.setRepository({ url, hash });
 }
 
-function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri, outputChannel: OutputChannel) {
+function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri) {
   const config = vscode.workspace.getConfiguration("splinter");
 
   let analyzeResult = AnalyzeResult.getInstance();
@@ -61,7 +61,7 @@ function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri, outputChanne
         });
 
         // Do the analysis
-        let ok = await analyzer.analyze((msg) => progress.report({ message: msg }), outputChannel);
+        let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
         if (ok) {
           // Save the result 
           await analyzeResult.saveToStorage();
@@ -119,6 +119,7 @@ export function activate(context: vscode.ExtensionContext) {
       analyzer = new DjangoAnalyzer(
         workspacePath,
         analyzeResult,
+        outputChannel,
       );
       break;
 
@@ -127,6 +128,7 @@ export function activate(context: vscode.ExtensionContext) {
       analyzer = new TypeORMAnalyzer(
         workspacePath,
         analyzeResult,
+        outputChannel,
       );
       break;
   }
@@ -180,7 +182,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // Run the initial analysis
-  runAnalyzer(analyzer, workspacePath, outputChannel);
+  runAnalyzer(analyzer, workspacePath);
 
   /**********************************************************/
   /*                  Register commands                     */
@@ -198,7 +200,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     analyzeResult.clear();
 
-    runAnalyzer(analyzer!, workspacePath, outputChannel);
+    runAnalyzer(analyzer!, workspacePath);
   });
 
   vscode.commands.registerCommand("splinter.reload", async () => {

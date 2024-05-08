@@ -63,7 +63,7 @@ class Message {
 export class DjangoAnalyzer implements Analyzer {
     private proc: child_process.ChildProcess | null;
 
-    constructor(private workspacePath: vscode.Uri, private result: AnalyzeResult) {
+    constructor(private workspacePath: vscode.Uri, private result: AnalyzeResult, private outputChannel: OutputChannel) {
         this.proc = null;
     }
 
@@ -71,7 +71,7 @@ export class DjangoAnalyzer implements Analyzer {
         return "django";
     }
 
-    async analyze(onMessage: (msg: string) => void, outputChannel: OutputChannel) {
+    async analyze(onMessage: (msg: string) => void) {
         if (this.proc !== null) {
             vscode.window.showErrorMessage("Analyze process is already running.");
             return false;
@@ -83,10 +83,10 @@ export class DjangoAnalyzer implements Analyzer {
 
         // Create a temporary file to store the messages
         const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: "django.json" });
-        outputChannel.clear();
-        outputChannel.appendLine(`Analyzing Django project at: ${rootPath}`);
-        outputChannel.appendLine(`Excluding files: ${exclude.join(", ")}`);
-        outputChannel.appendLine(`Message file: ${tmpFile.name}`);
+        this.outputChannel.clear();
+        this.outputChannel.appendLine(`Analyzing Django project at: ${rootPath}`);
+        this.outputChannel.appendLine(`Excluding files: ${exclude.join(", ")}`);
+        this.outputChannel.appendLine(`Message file: ${tmpFile.name}`);
 
         const args = [
             "-m",
@@ -104,7 +104,7 @@ export class DjangoAnalyzer implements Analyzer {
         this.proc = child_process.spawn("python3", args);
 
         if (this.proc === null) {
-            outputChannel.appendLine("Failed to spawn the analyze process.");
+            this.outputChannel.appendLine("Failed to spawn the analyze process.");
             return false;
         }
 
@@ -114,7 +114,7 @@ export class DjangoAnalyzer implements Analyzer {
         });
 
         this.proc.stderr?.on("data", (data) => {
-            outputChannel.append(`${data}`);
+            this.outputChannel.append(`${data}`);
         });
 
         // Wait for the process to finish
@@ -388,17 +388,19 @@ export class DjangoAnalyzer implements Analyzer {
     autoAnnotateFullScan() {
         const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
         for (const entity of entities.values()) {
-            if (!entity.note.includes(FULL_SCAN)) {
-                let hasFullScan = false;
-                for (const operation of entity.operations) {
-                    if (operation.name.endsWith(".all")) {
-                        hasFullScan = true;
-                        break;
-                    }
+            let hasFullScan = false;
+            for (const operation of entity.operations) {
+                if (operation.name.endsWith(".all")) {
+                    hasFullScan = true;
+                    break;
                 }
+            }
+            if (!entity.note.includes(FULL_SCAN)) {
                 if (hasFullScan) {
                     entity.note = appendNote(entity.note, `${FULL_SCAN}(a)`);
                 }
+            } else if (!hasFullScan) {
+                this.outputChannel.appendLine(`Double-check tag "${FULL_SCAN}" that was manually added for ${entity.name}`);
             }
         }
     }
@@ -418,37 +420,39 @@ export class DjangoAnalyzer implements Analyzer {
 
         const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
         for (const entity of entities.values()) {
+            // Collect all CDAs on the entity
+            const cdas: string[][] = [];
+            for (const operation of entity.operations) {
+                const cda: string[] = [];
+                for (const arg of operation.arguments) {
+                    const parts = arg.name.split("__");
+                    if (0 < parts.length && parts.length <= 2) {
+                        cda.push(parts[0]);
+                    }
+                }
+                if (cda.length > 0) {
+                    cdas.push(cda);
+                }
+            }
+            // Check if all CDAs are covered by each other
+            let cdaTran = false;
+            for (let i = 0; i < cdas.length; i++) {
+                for (let j = 0; j < cdas.length; j++) {
+                    if (i === j) {
+                        continue;
+                    }
+                    if (!covers(cdas[i], cdas[j])) {
+                        cdaTran = true;
+                        break;
+                    }
+                }
+            }
             if (!entity.note.includes(CDA_TRAN)) {
-                // Collect all CDAs on the entity
-                const cdas: string[][] = [];
-                for (const operation of entity.operations) {
-                    const cda: string[] = [];
-                    for (const arg of operation.arguments) {
-                        const parts = arg.name.split("__");
-                        if (0 < parts.length && parts.length <= 2) {
-                            cda.push(parts[0]);
-                        }
-                    }
-                    if (cda.length > 0) {
-                        cdas.push(cda);
-                    }
-                }
-                // Check if all CDAs are covered by each other
-                let cdaTran = false;
-                for (let i = 0; i < cdas.length; i++) {
-                    for (let j = 0; j < cdas.length; j++) {
-                        if (i === j) {
-                            continue;
-                        }
-                        if (!covers(cdas[i], cdas[j])) {
-                            cdaTran = true;
-                            break;
-                        }
-                    }
-                }
                 if (cdaTran) {
                     entity.note = appendNote(entity.note, `${CDA_TRAN}(a)`);
                 }
+            } else if (!cdaTran) {
+                this.outputChannel.appendLine(`Double-check tag "${CDA_TRAN}" that was manually added for ${entity.name}`);
             }
         }
     }
@@ -457,54 +461,56 @@ export class DjangoAnalyzer implements Analyzer {
         const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
         for (const entity of entities.values()) {
             for (const operation of entity.operations) {
-                if (!operation.note.includes(tag)) {
-                    let hasTag = false;
-                    for (const arg of operation.arguments) {
-                        const parts = arg.name.split("__");
-                        const lookup = parts[parts.length - 1];
-                        switch (tag) {
-                            case NON_EQ:
-                                if ([
-                                    "contains",
-                                    "icontains",
-                                    "startswith",
-                                    "istartswith",
-                                    "endswith",
-                                    "iendswith",
-                                    "gt",
-                                    "gte",
-                                    "lt",
-                                    "lte",
-                                    "range",
-                                    "regex",
-                                    "iregex",
-                                ].includes(lookup)) {
-                                    hasTag = true;
-                                }
-                                break;
-                            case NON_TRIVIAL:
-                                if ([
-                                    "iexact",
-                                    "contains",
-                                    "icontains",
-                                    "startswith",
-                                    "istartswith",
-                                    "endswith",
-                                    "iendswith",
-                                    "regex",
-                                    "iregex",
-                                ].includes(lookup)) {
-                                    hasTag = true;
-                                }
-                                break;
-                            default:
-                                vscode.window.showErrorMessage(`Unsupported tag: ${tag}`);
-                                return;
-                        }
+                let hasTag = false;
+                for (const arg of operation.arguments) {
+                    const parts = arg.name.split("__");
+                    const lookup = parts[parts.length - 1];
+                    switch (tag) {
+                        case NON_EQ:
+                            if ([
+                                "contains",
+                                "icontains",
+                                "startswith",
+                                "istartswith",
+                                "endswith",
+                                "iendswith",
+                                "gt",
+                                "gte",
+                                "lt",
+                                "lte",
+                                "range",
+                                "regex",
+                                "iregex",
+                            ].includes(lookup)) {
+                                hasTag = true;
+                            }
+                            break;
+                        case NON_TRIVIAL:
+                            if ([
+                                "iexact",
+                                "contains",
+                                "icontains",
+                                "startswith",
+                                "istartswith",
+                                "endswith",
+                                "iendswith",
+                                "regex",
+                                "iregex",
+                            ].includes(lookup)) {
+                                hasTag = true;
+                            }
+                            break;
+                        default:
+                            vscode.window.showErrorMessage(`Unsupported tag: ${tag}`);
+                            return;
                     }
+                }
+                if (!operation.note.includes(tag)) {
                     if (hasTag) {
                         operation.note = appendNote(operation.note, `${tag}(a)`);
                     }
+                } else if (!hasTag) {
+                    this.outputChannel.appendLine(`Double-check tag "${tag}" that was manually added for ${entity.name}/${operation.name}`);
                 }
             }
         }

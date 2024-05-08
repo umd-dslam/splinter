@@ -13,7 +13,7 @@ import tmp from "tmp";
 export class TypeORMAnalyzer implements Analyzer {
   private proc: child_process.ChildProcess | null;
 
-  constructor(private workspacePath: vscode.Uri, private result: AnalyzeResult) {
+  constructor(private workspacePath: vscode.Uri, private result: AnalyzeResult, private outputChannel: OutputChannel) {
     this.proc = null;
   }
 
@@ -21,7 +21,7 @@ export class TypeORMAnalyzer implements Analyzer {
     return "type-orm";
   }
 
-  async analyze(onMessage: (msg: string) => void, outputChannel: OutputChannel) {
+  async analyze(onMessage: (msg: string) => void) {
     if (this.proc !== null) {
       vscode.window.showErrorMessage("Analyze process is already running.");
       return false;
@@ -33,10 +33,10 @@ export class TypeORMAnalyzer implements Analyzer {
 
     // Create a temporary file to store the messages
     const tmpFile = tmp.fileSync({ prefix: "splinter", postfix: ".json" });
-    outputChannel.clear();
-    outputChannel.appendLine(`Analyzing the project at ${rootPath}`);
-    outputChannel.appendLine(`Batch size: ${batchSize}`);
-    outputChannel.appendLine(`Message file: ${tmpFile.name}`);
+    this.outputChannel.clear();
+    this.outputChannel.appendLine(`Analyzing the project at ${rootPath}`);
+    this.outputChannel.appendLine(`Batch size: ${batchSize}`);
+    this.outputChannel.appendLine(`Message file: ${tmpFile.name}`);
 
     this.proc = child_process.spawn("npx", [
       "@ctring/splinter-eslint",
@@ -59,7 +59,7 @@ export class TypeORMAnalyzer implements Analyzer {
     });
 
     this.proc.stderr?.on("data", (data) => {
-      outputChannel.append(`${data}`);
+      this.outputChannel.append(`${data}`);
     });
 
     // Wait for the process to finish
