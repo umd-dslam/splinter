@@ -63,7 +63,13 @@ function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri) {
         // Do the analysis
         let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
         if (ok) {
-          // Save the result 
+          // Auto-annotate the recognized entities
+          const tags = analyzer.supportedAutoAnnotateTags();
+          for (const tag of tags) {
+            analyzer!.autoAnnotate(tag);
+          }
+
+          // Save the result
           await analyzeResult.saveToStorage();
         } else {
           vscode.window.showErrorMessage("Failed to analyze the project.");
