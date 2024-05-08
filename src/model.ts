@@ -186,7 +186,7 @@ export function groupOperationTypes(
 }
 
 export const FULL_SCAN = "full-scan";
-const CDA_TRAN = "cda-tran";
+export const CDA_TRAN = "cda-tran";
 const NON_TRIVIAL = "non-trivial";
 const NON_EQ = "non-eq";
 const CDA_DEP = "cda-dep";
@@ -242,4 +242,11 @@ export function getCurrentSelection(workspacePath: vscode.Uri): Selection | unde
     };
   }
   return selection;
+}
+
+export function appendNote(note: string, more: string): string {
+  if (!note) {
+    return more;
+  }
+  return note + " " + more;
 }

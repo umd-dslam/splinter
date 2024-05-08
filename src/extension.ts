@@ -4,7 +4,7 @@ import glob from 'glob';
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { DjangoAnalyzer } from "./analyzer/django";
-import { AnalyzeResult, AnalyzeResultGroup, Operation } from "./model";
+import { AnalyzeResult, AnalyzeResultGroup, Operation, appendNote } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
@@ -475,10 +475,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (note) {
         for (let i of selectedItems) {
-          if (i.inner.note) {
-            i.inner.note += " ";
-          }
-          i.inner.note += note;
+          i.inner.note = appendNote(i.inner.note, note);
         }
         analyzeResult.saveToStorage();
       }

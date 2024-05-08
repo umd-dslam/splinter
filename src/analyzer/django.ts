@@ -1,5 +1,5 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, FULL_SCAN } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, FULL_SCAN, appendNote } from "../model";
 import { Analyzer } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
@@ -364,34 +364,88 @@ export class DjangoAnalyzer implements Analyzer {
         }
     }
 
+    supportedAutoAnnotateTags(): string[] {
+        return [FULL_SCAN, CDA_TRAN];
+    }
+
     autoAnnotate(tag: string) {
         switch (tag) {
             case FULL_SCAN:
-                const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
-                for (const entity of entities.values()) {
-                    if (!entity.note.includes(FULL_SCAN)) {
-                        let hasFullScan = false;
-                        for (const operation of entity.operations) {
-                            if (operation.name.endsWith(".all")) {
-                                hasFullScan = true;
-                                break;
-                            }
-                        }
-                        if (hasFullScan) {
-                            if (entity.note) {
-                                entity.note += " ";
-                            }
-                            entity.note += `${FULL_SCAN}(a)`;
-                        }
-                    }
-                }
+                this.autoAnnotateFullScan();
+                break;
+            case CDA_TRAN:
+                this.autoAnnotateCdaTran();
                 break;
             default:
                 vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
         }
     }
 
-    supportedAutoAnnotateTags(): string[] {
-        return [FULL_SCAN];
+    autoAnnotateFullScan() {
+        const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        for (const entity of entities.values()) {
+            if (!entity.note.includes(FULL_SCAN)) {
+                let hasFullScan = false;
+                for (const operation of entity.operations) {
+                    if (operation.name.endsWith(".all")) {
+                        hasFullScan = true;
+                        break;
+                    }
+                }
+                if (hasFullScan) {
+                    entity.note = appendNote(entity.note, `${FULL_SCAN}(a)`);
+                }
+            }
+        }
+    }
+
+    autoAnnotateCdaTran() {
+        const covers = (bigger: string[], smaller: string[]) => {
+            if (bigger.length < smaller.length) {
+                [bigger, smaller] = [smaller, bigger];
+            }
+            for (const column of smaller) {
+                if (!bigger.includes(column)) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        for (const entity of entities.values()) {
+            if (!entity.note.includes(CDA_TRAN)) {
+                // Collect all CDAs on the entity
+                const cdas: string[][] = [];
+                for (const operation of entity.operations) {
+                    const cda: string[] = [];
+                    for (const arg of operation.arguments) {
+                        const parts = arg.name.split("__");
+                        if (0 < parts.length && parts.length <= 2) {
+                            cda.push(parts[0]);
+                        }
+                    }
+                    if (cda.length > 0) {
+                        cdas.push(cda);
+                    }
+                }
+                // Check if all CDAs are covered by each other
+                let cdaTran = false;
+                for (let i = 0; i < cdas.length; i++) {
+                    for (let j = 0; j < cdas.length; j++) {
+                        if (i === j) {
+                            continue;
+                        }
+                        if (!covers(cdas[i], cdas[j])) {
+                            cdaTran = true;
+                            break;
+                        }
+                    }
+                }
+                if (cdaTran) {
+                    entity.note = appendNote(entity.note, `${CDA_TRAN}(a)`);
+                }
+            }
+        }
     }
 }
