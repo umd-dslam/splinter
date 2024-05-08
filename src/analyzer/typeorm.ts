@@ -18,7 +18,7 @@ export class TypeORMAnalyzer implements Analyzer {
   }
 
   getName() {
-    return "type-orm";
+    return "typeorm";
   }
 
   async analyze(onMessage: (msg: string) => void) {
