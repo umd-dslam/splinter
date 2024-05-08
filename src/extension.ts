@@ -100,7 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
     const pyCount = glob.sync('**/**.py', { cwd: workspacePath.fsPath }).length;
 
     if (tsCount + pyCount === 0) {
-      vscode.window.showErrorMessage("No TypeScript or Python files found in the project.");
+      vscode.window.showInformationMessage("No TypeScript or Python files found in the project.");
       return;
     }
 
@@ -124,13 +124,15 @@ export function activate(context: vscode.ExtensionContext) {
       break;
 
     case "typescript":
-    default:
       analyzer = new TypeORMAnalyzer(
         workspacePath,
         analyzeResult,
         outputChannel,
       );
       break;
+    default:
+      vscode.window.showErrorMessage(`Unsupported language: ${language}`);
+      return;
   }
 
   const vscodePath = vscode.Uri.joinPath(workspacePath, ".vscode");
