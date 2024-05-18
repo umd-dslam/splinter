@@ -1,4 +1,4 @@
-import vscode, { OutputChannel } from "vscode";
+import vscode from "vscode";
 import fs from "fs";
 import glob from 'glob';
 import { ORMItem, ORMItemProvider } from "./provider/orm-items";
@@ -511,10 +511,8 @@ export function activate(context: vscode.ExtensionContext) {
       if (!selectedItems) {
         selectedItems = [selectedItem];
       }
-      import("clipboardy").then((clipboardy) => {
-        let combined = selectedItems.map((i) => i.inner.name).join("\n");
-        clipboardy.default.writeSync(combined);
-      });
+      let combined = selectedItems.map((i) => i.inner.name).join("\n");
+      vscode.env.clipboard.writeText(combined);
     }
   );
 
@@ -524,12 +522,25 @@ export function activate(context: vscode.ExtensionContext) {
       if (!selectedInfoLines) {
         selectedInfoLines = [selectedInfoLine];
       }
-      import("clipboardy").then((clipboardy) => {
-        let combined = selectedInfoLines
-          .map((i) => `${i.name}: ${i.value}`)
+      let combined;
+      if (selectedInfoLines.length === 1) {
+        if (selectedInfoLine.value === undefined) {
+          combined = "";
+        } else {
+          combined = selectedInfoLine.value;
+        }
+      } else {
+        combined = selectedInfoLines
+          .map((i) => {
+            if (i.value === undefined) {
+              return i.name;
+            } else {
+              return `${i.name}: ${i.value}`;
+            }
+          })
           .join("\n");
-        clipboardy.default.writeSync(combined);
-      });
+      }
+      vscode.env.clipboard.writeText(combined);
     }
   );
 

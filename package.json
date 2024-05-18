@@ -3,14 +3,16 @@
   "displayName": "Splinter",
   "description": "",
   "publisher": "ctring",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.77.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:**/*.{ts,py}"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
@@ -246,14 +248,13 @@
     "@types/tmp": "^0.2.6",
     "@types/vscode": "^1.77.0",
     "@vscode/test-electron": "^2.3.0",
-    "glob": "^8.1.0",
     "mocha": "^10.2.0",
     "typescript": "^4.9.5"
   },
   "dependencies": {
     "@ctring/splinter-eslint": "^1.0.8",
-    "clipboardy": "^4.0.0",
     "pluralize": "^8.0.0",
+    "glob": "^8.1.0",
     "tmp": "^0.2.3"
   },
   "extensionDependencies": [
