@@ -97,7 +97,7 @@ export class DjangoAnalyzer implements Analyzer {
         ];
 
         for (const ex of exclude) {
-            args.push("--exclude-glob");
+            args.push("--exclude");
             args.push(ex);
         }
 
@@ -111,10 +111,11 @@ export class DjangoAnalyzer implements Analyzer {
         this.proc.stdout?.on("data", (data) => {
             const lines = `${data}`.trimEnd().split("\n");
             onMessage(lines[lines.length - 1]);
+            this.outputChannel.append(`STDOUT: ${data}`);
         });
 
         this.proc.stderr?.on("data", (data) => {
-            this.outputChannel.append(`${data}`);
+            this.outputChannel.append(`STDERR: ${data}`);
         });
 
         // Wait for the process to finish

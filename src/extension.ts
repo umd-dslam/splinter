@@ -82,6 +82,8 @@ function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  const outputChannel = vscode.window.createOutputChannel("Splinter");
+
   if (!context.storageUri) {
     return;
   }
@@ -92,8 +94,6 @@ export function activate(context: vscode.ExtensionContext) {
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : "");
 
-  const outputChannel = vscode.window.createOutputChannel("Splinter");
-
   /**********************************************************/
   /*             Set up the analyzer and views              */
   /**********************************************************/
@@ -102,8 +102,8 @@ export function activate(context: vscode.ExtensionContext) {
   if (language === "auto") {
     // Try to detect the language by counting the number of file types: *.ts and *.py
 
-    const tsCount = glob.sync('**/**.ts', { cwd: workspacePath.fsPath }).length;
-    const pyCount = glob.sync('**/**.py', { cwd: workspacePath.fsPath }).length;
+    const tsCount = glob.sync('**/*.ts', { cwd: workspacePath.fsPath }).length;
+    const pyCount = glob.sync('**/*.py', { cwd: workspacePath.fsPath }).length;
 
     if (tsCount + pyCount === 0) {
       vscode.window.showInformationMessage("No TypeScript or Python files found in the project.");
