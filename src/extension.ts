@@ -475,17 +475,17 @@ export function activate(context: vscode.ExtensionContext) {
         placeHolder = `Append note to ${selectedItems.length} items`;
       }
 
-      const note = await vscode.window
+      const tags = await vscode.window
         .showQuickPick(
           TAGS,
           {
-            canPickMany: false,
+            canPickMany: true,
             placeHolder,
           });
 
-      if (note) {
+      if (tags) {
         for (let i of selectedItems) {
-          i.inner.note = appendNote(i.inner.note, note);
+          i.inner.note = appendNote(i.inner.note, tags.join(" "));
         }
         analyzeResult.saveToStorage();
       }
