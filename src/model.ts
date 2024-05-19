@@ -193,7 +193,7 @@ const CDA_DEP = "cda-dep";
 const ONESHOT_EASY = "1shot-easy";
 const ONESHOT_HARD = "1shot-hard";
 const MSHOT = "mshot";
-const NO_PHANTOM = "no-phantom";
+const PHANTOM = "phantom";
 
 export const TAGS = [
   CDA_TRAN,
@@ -204,7 +204,7 @@ export const TAGS = [
   NON_EQ,
   NON_TRIVIAL,
   FULL_SCAN,
-  NO_PHANTOM,
+  PHANTOM,
 ];
 
 export function countTags(entities: Entity[]): Map<string, number> {
