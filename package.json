@@ -52,7 +52,9 @@
             "**/.vscode/**",
             "**/.git/**",
             "**/.github/**",
-            "**/test*"
+            "**/test*",
+            "**/tests/**",
+            "**/migrations/**"
           ]
         }
       }
