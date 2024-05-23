@@ -197,6 +197,14 @@ export function activate(context: vscode.ExtensionContext) {
   /**********************************************************/
 
   vscode.commands.registerCommand("splinter.reanalyze", async () => {
+    const ok = await vscode.window.showQuickPick(["No", "Yes"], {
+      placeHolder: "Are you sure you want to reanalyze the project?",
+    });
+
+    if (ok === "No") {
+      return;
+    }
+
     const resultPath = vscode.Uri.joinPath(
       vscode.Uri.joinPath(workspacePath, ".vscode"),
       `${analyzer!.getName()}-results.json`
