@@ -6,6 +6,9 @@ import {
   Operation,
   Argument,
   groupOperationTypes,
+  entityHasKeyword,
+  operationHasKeyword,
+  argumentHasKeyword,
 } from "../model";
 import path from "path";
 import pluralize from "pluralize";
@@ -46,6 +49,9 @@ export class ORMItemProvider
   implements
   vscode.TreeDataProvider<ORMItem>,
   vscode.TreeDragAndDropController<ORMItem> {
+
+  private filter: string | null = null;
+
   constructor(
     private workspacePath: vscode.Uri,
     private resultGroup: AnalyzeResultGroup
@@ -149,8 +155,10 @@ export class ORMItemProvider
     if (item) {
       if (item.type === "entity") {
         let inner = item.inner as Entity;
+        let curEntityHasKeyword = entityHasKeyword(inner, this.filter);
         return inner.operations
           .sort((a, b) => (a.name < b.name ? -1 : 1))
+          .filter(operation => curEntityHasKeyword || operationHasKeyword(operation, this.filter))
           .map((operation, index) => ({
             type: "operation",
             inner: operation,
@@ -174,6 +182,18 @@ export class ORMItemProvider
     }
 
     var entities = AnalyzeResult.getInstance().getGroup(this.resultGroup);
+
+    if (this.filter) {
+      entities = new Map(
+        Array.from(entities.entries()).filter(
+          ([_, entity]) =>
+            entityHasKeyword(entity, this.filter) ||
+            entity.operations.some(operation =>
+              operationHasKeyword(operation, this.filter) ||
+              operation.arguments.some(argument => argumentHasKeyword(argument, this.filter)))
+        )
+      );
+    }
 
     return Array.from(entities.values())
       .sort((a, b) => (a.name < b.name ? -1 : 1))
@@ -287,5 +307,13 @@ export class ORMItemProvider
     }
 
     await analyzeResult.saveToStorage();
+  }
+
+  setFilter(filter: string): void {
+    this.filter = filter;
+  }
+
+  clearFilter(): void {
+    this.filter = null;
   }
 }

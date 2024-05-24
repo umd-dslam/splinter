@@ -12,6 +12,14 @@ export type Entity = {
   isCustom: boolean;
 };
 
+export function entityHasKeyword(entity: Entity, keyword: string | null): boolean {
+  if (!keyword) {
+    return true;
+  }
+  return entity.name.includes(keyword) ||
+    entity.note.includes(keyword);
+}
+
 export type Operation = {
   selection?: Selection;
   name: string;
@@ -21,12 +29,28 @@ export type Operation = {
   isCustom: boolean;
 };
 
+export function operationHasKeyword(operation: Operation, keyword: string | null): boolean {
+  if (!keyword) {
+    return true;
+  }
+  return operation.name.includes(keyword) ||
+    operation.note.includes(keyword) ||
+    operation.type.includes(keyword);
+}
+
 export type Argument = {
   selection?: Selection;
   name: string;
   note: string;
   isCustom: boolean;
 };
+
+export function argumentHasKeyword(argument: Argument, keyword: string | null): boolean {
+  if (!keyword) {
+    return true;
+  }
+  return argument.name.includes(keyword) || argument.note.includes(keyword);
+}
 
 export type Selection = {
   filePath: string;

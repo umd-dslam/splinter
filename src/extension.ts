@@ -163,25 +163,23 @@ export function activate(context: vscode.ExtensionContext) {
     workspacePath,
     AnalyzeResultGroup.recognized
   );
-  context.subscriptions.push(
-    vscode.window.createTreeView("recognized", {
-      treeDataProvider: recognizedProvider,
-      canSelectMany: true,
-      dragAndDropController: recognizedProvider,
-    })
-  );
+  const recognizedTreeView = vscode.window.createTreeView("recognized", {
+    treeDataProvider: recognizedProvider,
+    canSelectMany: true,
+    dragAndDropController: recognizedProvider,
+  });
+  context.subscriptions.push(recognizedTreeView);
 
   const unknownProvider = new ORMItemProvider(
     workspacePath,
     AnalyzeResultGroup.unknown
   );
-  context.subscriptions.push(
-    vscode.window.createTreeView("unknown", {
-      treeDataProvider: unknownProvider,
-      canSelectMany: true,
-      dragAndDropController: unknownProvider,
-    })
-  );
+  const unknownTreeView = vscode.window.createTreeView("unknown", {
+    treeDataProvider: unknownProvider,
+    canSelectMany: true,
+    dragAndDropController: unknownProvider,
+  });
+  context.subscriptions.push(unknownTreeView);
 
   analyzeResult.setRefreshFn(() => {
     infoProvider.refresh();
@@ -567,6 +565,56 @@ export function activate(context: vscode.ExtensionContext) {
         await analyzeResult.saveToStorage();
         analyzeResult.refreshViews();
       }
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.filter.createRecognized",
+    async () => {
+      const filter = await vscode.window.showInputBox({
+        placeHolder: "Enter an expression to filter the Recognized entities",
+      });
+
+      if (filter === undefined) {
+        return;
+      }
+      recognizedProvider.setFilter(filter);
+      recognizedProvider.refresh();
+      vscode.commands.executeCommand('setContext', 'splinter.hasFilterInRecognized', true);
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.filter.clearRecognized",
+    () => {
+      recognizedProvider.clearFilter();
+      recognizedProvider.refresh();
+      vscode.commands.executeCommand('setContext', 'splinter.hasFilterInRecognized', false);
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.filter.createUnknown",
+    async () => {
+      const filter = await vscode.window.showInputBox({
+        placeHolder: "Enter an expression to filter the Unknown entities",
+      });
+
+      if (filter === undefined) {
+        return;
+      }
+      unknownProvider.setFilter(filter);
+      unknownProvider.refresh();
+      vscode.commands.executeCommand('setContext', 'splinter.hasFilterInUnknown', true);
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.filter.clearUnknown",
+    () => {
+      unknownProvider.clearFilter();
+      unknownProvider.refresh();
+      vscode.commands.executeCommand('setContext', 'splinter.hasFilterInUnknown', false);
     }
   );
 }

@@ -157,6 +157,26 @@
           "command": "splinter.entity.add",
           "when": "view == recognized",
           "group": "navigation"
+        },
+        {
+          "command": "splinter.filter.createRecognized",
+          "when": "view == recognized && !splinter.hasFilterInRecognized",
+          "group": "navigation"
+        },
+        {
+          "command": "splinter.filter.createUnknown",
+          "when": "view == unknown && !splinter.hasFilterInUnknown",
+          "group": "navigation"
+        },
+        {
+          "command": "splinter.filter.clearRecognized",
+          "when": "view == recognized && splinter.hasFilterInRecognized",
+          "group": "navigation"
+        },
+        {
+          "command": "splinter.filter.clearUnknown",
+          "when": "view == unknown && splinter.hasFilterInUnknown",
+          "group": "navigation"
         }
       ]
     },
@@ -230,6 +250,30 @@
         "command": "splinter.autoAnnotate",
         "title": "Auto annotate",
         "category": "Splinter"
+      },
+      {
+        "command": "splinter.filter.createRecognized",
+        "title": "Filter",
+        "category": "Splinter",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "splinter.filter.clearRecognized",
+        "title": "Clear Filter",
+        "category": "Splinter",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "splinter.filter.createUnknown",
+        "title": "Filter",
+        "category": "Splinter",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "splinter.filter.clearUnknown",
+        "title": "Clear Filter",
+        "category": "Splinter",
+        "icon": "$(filter-filled)"
       }
     ]
   },
