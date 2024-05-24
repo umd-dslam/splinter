@@ -571,14 +571,16 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.filter.createRecognized",
     async () => {
-      const filter = await vscode.window.showInputBox({
-        placeHolder: "Enter an expression to filter the Recognized entities",
+      const filtersStr = await vscode.window.showInputBox({
+        placeHolder: "Enter expressions to filter the Recognized entities. Use comma to separate multiple expressions.",
       });
 
-      if (filter === undefined) {
+      if (filtersStr === undefined) {
         return;
       }
-      recognizedProvider.setFilter(filter);
+
+      const filters = filtersStr.split(",").map((f) => f.trim());
+      recognizedProvider.setFilters(filters);
       recognizedProvider.refresh();
       vscode.commands.executeCommand('setContext', 'splinter.hasFilterInRecognized', true);
     }
@@ -587,7 +589,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.filter.clearRecognized",
     () => {
-      recognizedProvider.clearFilter();
+      recognizedProvider.clearFilters();
       recognizedProvider.refresh();
       vscode.commands.executeCommand('setContext', 'splinter.hasFilterInRecognized', false);
     }
@@ -596,14 +598,16 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.filter.createUnknown",
     async () => {
-      const filter = await vscode.window.showInputBox({
-        placeHolder: "Enter an expression to filter the Unknown entities",
+      const filtersStr = await vscode.window.showInputBox({
+        placeHolder: "Enter expressions to filter the Recognized entities. Use comma to separate multiple expressions.",
       });
 
-      if (filter === undefined) {
+      if (filtersStr === undefined) {
         return;
       }
-      unknownProvider.setFilter(filter);
+
+      const filters = filtersStr.split(",").map((f) => f.trim());
+      unknownProvider.setFilters(filters);
       unknownProvider.refresh();
       vscode.commands.executeCommand('setContext', 'splinter.hasFilterInUnknown', true);
     }
@@ -612,7 +616,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.filter.clearUnknown",
     () => {
-      unknownProvider.clearFilter();
+      unknownProvider.clearFilters();
       unknownProvider.refresh();
       vscode.commands.executeCommand('setContext', 'splinter.hasFilterInUnknown', false);
     }

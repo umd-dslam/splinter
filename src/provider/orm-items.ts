@@ -6,9 +6,8 @@ import {
   Operation,
   Argument,
   groupOperationTypes,
-  entityHasKeyword,
-  operationHasKeyword,
-  argumentHasKeyword,
+  entityIncludes,
+  operationIncludes,
 } from "../model";
 import path from "path";
 import pluralize from "pluralize";
@@ -50,7 +49,7 @@ export class ORMItemProvider
   vscode.TreeDataProvider<ORMItem>,
   vscode.TreeDragAndDropController<ORMItem> {
 
-  private filter: string | null = null;
+  private filters: string[] = [];
 
   constructor(
     private workspacePath: vscode.Uri,
@@ -155,10 +154,10 @@ export class ORMItemProvider
     if (item) {
       if (item.type === "entity") {
         let inner = item.inner as Entity;
-        let curEntityHasKeyword = entityHasKeyword(inner, this.filter);
+        let curEntityPassedFilters = entityIncludes(inner, this.filters);
         return inner.operations
           .sort((a, b) => (a.name < b.name ? -1 : 1))
-          .filter(operation => curEntityHasKeyword || operationHasKeyword(operation, this.filter))
+          .filter(operation => curEntityPassedFilters || operationIncludes(operation, this.filters))
           .map((operation, index) => ({
             type: "operation",
             inner: operation,
@@ -183,14 +182,12 @@ export class ORMItemProvider
 
     var entities = AnalyzeResult.getInstance().getGroup(this.resultGroup);
 
-    if (this.filter) {
+    if (this.filters.length > 0) {
       entities = new Map(
         Array.from(entities.entries()).filter(
           ([_, entity]) =>
-            entityHasKeyword(entity, this.filter) ||
-            entity.operations.some(operation =>
-              operationHasKeyword(operation, this.filter) ||
-              operation.arguments.some(argument => argumentHasKeyword(argument, this.filter)))
+            entityIncludes(entity, this.filters) ||
+            entity.operations.some(operation => operationIncludes(operation, this.filters))
         )
       );
     }
@@ -309,11 +306,11 @@ export class ORMItemProvider
     await analyzeResult.saveToStorage();
   }
 
-  setFilter(filter: string): void {
-    this.filter = filter;
+  setFilters(filters: string[]): void {
+    this.filters = filters;
   }
 
-  clearFilter(): void {
-    this.filter = null;
+  clearFilters(): void {
+    this.filters = [];
   }
 }

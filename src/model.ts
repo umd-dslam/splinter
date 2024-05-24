@@ -12,12 +12,11 @@ export type Entity = {
   isCustom: boolean;
 };
 
-export function entityHasKeyword(entity: Entity, keyword: string | null): boolean {
-  if (!keyword) {
+export function entityIncludes(entity: Entity, filters: string[]): boolean {
+  if (filters.length === 0) {
     return true;
   }
-  return entity.name.includes(keyword) ||
-    entity.note.includes(keyword);
+  return filters.some((filter) => entity.name.includes(filter) || entity.note.includes(filter));
 }
 
 export type Operation = {
@@ -29,13 +28,15 @@ export type Operation = {
   isCustom: boolean;
 };
 
-export function operationHasKeyword(operation: Operation, keyword: string | null): boolean {
-  if (!keyword) {
+export function operationIncludes(operation: Operation, filters: string[]): boolean {
+  if (filters.length === 0) {
     return true;
   }
-  return operation.name.includes(keyword) ||
-    operation.note.includes(keyword) ||
-    operation.type.includes(keyword);
+  return filters.some((filter) =>
+    operation.name.includes(filter) ||
+    operation.note.includes(filter) ||
+    operation.type.includes(filter) ||
+    operation.arguments.some((arg) => arg.name.includes(filter) || arg.note.includes(filter)));
 }
 
 export type Argument = {
@@ -44,13 +45,6 @@ export type Argument = {
   note: string;
   isCustom: boolean;
 };
-
-export function argumentHasKeyword(argument: Argument, keyword: string | null): boolean {
-  if (!keyword) {
-    return true;
-  }
-  return argument.name.includes(keyword) || argument.note.includes(keyword);
-}
 
 export type Selection = {
   filePath: string;
