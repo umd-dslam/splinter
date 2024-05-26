@@ -156,13 +156,19 @@ export class ORMItemProvider
         let inner = item.inner as Entity;
         let curEntityPassedFilters = entityIncludes(inner, this.filters);
         return inner.operations
-          .sort((a, b) => (a.name < b.name ? -1 : 1))
-          .filter(operation => curEntityPassedFilters || operationIncludes(operation, this.filters))
-          .map((operation, index) => ({
+          .map((operation, index) => {
+            return {
+              "operation": operation,
+              "index": index
+            }
+          })
+          .filter(indexed_op => curEntityPassedFilters || operationIncludes(indexed_op["operation"], this.filters))
+          .sort((a, b) => (a["operation"].name < b["operation"].name ? -1 : 1))
+          .map(indexed_op => ({
             type: "operation",
-            inner: operation,
+            inner: indexed_op["operation"],
             parent: item,
-            idInParent: index,
+            idInParent: indexed_op["index"],
             resultGroup: this.resultGroup,
           }));
       } else if (item.type === "operation") {
@@ -284,6 +290,7 @@ export class ORMItemProvider
     for (const movedItem of items) {
       // Look up the source entity
       let srcEntity = srcGroup.get(movedItem.parentName);
+      console.log(movedItem.parentName, srcEntity, srcGroup)
       if (!srcEntity || srcEntity === target.inner) {
         continue;
       }

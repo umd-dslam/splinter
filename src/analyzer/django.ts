@@ -141,7 +141,7 @@ export class DjangoAnalyzer implements Analyzer {
     ) {
         let entities = this.result.getGroup(AnalyzeResultGroup.recognized);
         if (entities.size === 0) {
-            entities.set("django.db.transaction.atomic", {
+            entities.set("[django.db.transaction.atomic]", {
                 selection: undefined,
                 name: "[django.db.transaction.atomic]",
                 operations: [],
