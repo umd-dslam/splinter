@@ -16,7 +16,11 @@ export function entityIncludes(entity: Entity, filters: string[]): boolean {
   if (filters.length === 0) {
     return true;
   }
-  return filters.some((filter) => entity.name.includes(filter) || entity.note.includes(filter));
+  return filters.some((filter) => {
+    const filterLower = filter.toLowerCase();
+    return entity.name.toLowerCase().includes(filterLower) ||
+      entity.note.toLowerCase().includes(filterLower);
+  });
 }
 
 export type Operation = {
@@ -32,11 +36,16 @@ export function operationIncludes(operation: Operation, filters: string[]): bool
   if (filters.length === 0) {
     return true;
   }
-  return filters.some((filter) =>
-    operation.name.includes(filter) ||
-    operation.note.includes(filter) ||
-    operation.type.includes(filter) ||
-    operation.arguments.some((arg) => arg.name.includes(filter) || arg.note.includes(filter)));
+  return filters.some((filter) => {
+    const filterLower = filter.toLowerCase();
+    return operation.name.toLowerCase().includes(filterLower) ||
+      operation.note.toLowerCase().includes(filterLower) ||
+      operation.type.toLowerCase().includes(filterLower) ||
+      operation.arguments.some((arg) =>
+        arg.name.toLowerCase().includes(filterLower) ||
+        arg.note.toLowerCase().includes(filterLower)
+      )
+  });
 }
 
 export type Argument = {
