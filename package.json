@@ -275,6 +275,18 @@
         "category": "Splinter",
         "icon": "$(filter-filled)"
       }
+    ],
+    "keybindings": [
+      {
+        "command": "splinter.filter.createRecognized",
+        "key": "ctrl+alt+f",
+        "when": "activeViewlet == 'workbench.view.extension.splinter'"
+      },
+      {
+        "command": "splinter.filter.clearRecognized",
+        "key": "ctrl+alt+c",
+        "when": "activeViewlet == 'workbench.view.extension.splinter'"
+      }
     ]
   },
   "scripts": {
