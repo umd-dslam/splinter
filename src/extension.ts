@@ -199,7 +199,7 @@ export function activate(context: vscode.ExtensionContext) {
       placeHolder: "Are you sure you want to reanalyze the project?",
     });
 
-    if (ok === "No") {
+    if (ok !== "Yes") {
       return;
     }
 

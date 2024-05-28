@@ -236,6 +236,12 @@ export class DjangoAnalyzer implements Analyzer {
                 // Find a recognized entity
                 let found = false;
                 for (const calleeType of content.objectTypes) {
+                    if (calleeType === "django.db.transaction.atomic") {
+                        entities.get("[django.db.transaction.atomic]")!.operations.push(operation);
+                        found = true;
+                        break;
+                    }
+
                     // Parse the entity name in the pattern "django.db.models.manager.Manager[ModelName]"
                     {
                         const entityName = calleeType.match(/django.db.models.manager.Manager\[(.*)\]/)?.[1];

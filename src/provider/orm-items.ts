@@ -290,7 +290,6 @@ export class ORMItemProvider
     for (const movedItem of items) {
       // Look up the source entity
       let srcEntity = srcGroup.get(movedItem.parentName);
-      console.log(movedItem.parentName, srcEntity, srcGroup)
       if (!srcEntity || srcEntity === target.inner) {
         continue;
       }
