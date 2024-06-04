@@ -277,4 +277,9 @@ export class TypeORMAnalyzer implements Analyzer {
       }
     }
   }
+
+  autoAnnotate(tag: string) { }
+  supportedAutoAnnotateTags() {
+    return [];
+  }
 }
