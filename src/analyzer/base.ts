@@ -10,26 +10,6 @@ export interface Analyzer {
   supportedAutoAnnotateTags: () => string[];
 }
 
-export function autoAnnotateFullScan(result: AnalyzeResult, outputChannel: OutputChannel) {
-  const entities = result.getGroup(AnalyzeResultGroup.recognized);
-  for (const entity of entities.values()) {
-    let hasFullScan = false;
-    for (const operation of entity.operations) {
-      if (operation.name.endsWith(".all")) {
-        hasFullScan = true;
-        break;
-      }
-    }
-    if (!entity.note.includes(FULL_SCAN)) {
-      if (hasFullScan) {
-        entity.note = appendNote(entity.note, `${FULL_SCAN}(a)`);
-      }
-    } else if (!hasFullScan) {
-      outputChannel.appendLine(`Double-check tag "${FULL_SCAN}" that was manually added for ${entity.name}`);
-    }
-  }
-}
-
 export function autoAnnotateCdaTran(result: AnalyzeResult, outputChannel: OutputChannel) {
   const covers = (bigger: string[], smaller: string[]) => {
     if (bigger.length < smaller.length) {

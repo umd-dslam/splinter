@@ -1,6 +1,6 @@
 import vscode, { OutputChannel } from "vscode";
 import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote } from "../model";
-import { Analyzer, autoAnnotateFullScan, autoAnnotateCdaTran } from "./base";
+import { Analyzer, autoAnnotateCdaTran } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
 import path from "path";
@@ -378,7 +378,7 @@ export class DjangoAnalyzer implements Analyzer {
     autoAnnotate(tag: string) {
         switch (tag) {
             case FULL_SCAN:
-                autoAnnotateFullScan(this.result, this.outputChannel);
+                this.autoAnnotateFullScan();
                 break;
             case CDA_TRAN:
                 autoAnnotateCdaTran(this.result, this.outputChannel);
@@ -389,6 +389,26 @@ export class DjangoAnalyzer implements Analyzer {
                 break;
             default:
                 vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
+        }
+    }
+
+    autoAnnotateFullScan() {
+        const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        for (const entity of entities.values()) {
+            let hasFullScan = false;
+            for (const operation of entity.operations) {
+                if (operation.name.endsWith(".all")) {
+                    hasFullScan = true;
+                    break;
+                }
+            }
+            if (!entity.note.includes(FULL_SCAN)) {
+                if (hasFullScan) {
+                    entity.note = appendNote(entity.note, `${FULL_SCAN}(a)`);
+                }
+            } else if (!hasFullScan) {
+                this.outputChannel.appendLine(`Double-check tag "${FULL_SCAN}" that was manually added for ${entity.name}`);
+            }
         }
     }
 
