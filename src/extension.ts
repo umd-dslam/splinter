@@ -1,7 +1,7 @@
 import vscode from "vscode";
 import fs from "fs";
 import glob from 'glob';
-import { ORMItem, ORMItemProvider } from "./provider/orm-items";
+import { ORMItem, ORMItemProvider } from "./provider/ormItems";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { DjangoAnalyzer } from "./analyzer/django";
 import { AnalyzeResult, AnalyzeResultGroup, Operation, appendNote } from "./model";

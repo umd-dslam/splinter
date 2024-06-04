@@ -1,6 +1,6 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup } from "../model";
-import { Analyzer } from "./base";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote } from "../model";
+import { Analyzer, autoAnnotateFullScan, autoAnnotateCdaTran } from "./base";
 import {
   EntityMessage,
   MethodMessage,
@@ -278,8 +278,20 @@ export class TypeORMAnalyzer implements Analyzer {
     }
   }
 
-  autoAnnotate(tag: string) { }
   supportedAutoAnnotateTags() {
-    return [];
+    return [FULL_SCAN, CDA_TRAN];
+  }
+
+  autoAnnotate(tag: string) {
+    switch (tag) {
+      case FULL_SCAN:
+        autoAnnotateFullScan(this.result, this.outputChannel);
+        break;
+      case CDA_TRAN:
+        autoAnnotateCdaTran(this.result, this.outputChannel);
+        break;
+      default:
+        vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
+    }
   }
 }
