@@ -160,15 +160,15 @@ export class ORMItemProvider
             return {
               "operation": operation,
               "index": index
-            }
+            };
           })
-          .filter(indexed_op => curEntityPassedFilters || operationIncludes(indexed_op["operation"], this.filters))
+          .filter(indexedOp => curEntityPassedFilters || operationIncludes(indexedOp["operation"], this.filters))
           .sort((a, b) => (a["operation"].name < b["operation"].name ? -1 : 1))
-          .map(indexed_op => ({
+          .map(indexedOp => ({
             type: "operation",
-            inner: indexed_op["operation"],
+            inner: indexedOp["operation"],
             parent: item,
-            idInParent: indexed_op["index"],
+            idInParent: indexedOp["index"],
             resultGroup: this.resultGroup,
           }));
       } else if (item.type === "operation") {

@@ -1,7 +1,7 @@
 import vscode from "vscode";
 import fs from "fs";
 import glob from 'glob';
-import { ORMItem, ORMItemProvider } from "./provider/orm-items";
+import { ORMItem, ORMItemProvider } from "./provider/ormItems";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { DjangoAnalyzer } from "./analyzer/django";
 import { AnalyzeResult, AnalyzeResultGroup, Operation, appendNote } from "./model";
@@ -9,6 +9,7 @@ import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
 import { Entity, getCurrentSelection, TAGS } from "./model";
+import { SUPPORTED_AUTO_ANNOTATE_TAGS, autoAnnotate } from "./autoAnnotate";
 
 // Sets the git hash and repository URL in the result
 async function setRepositoryInfo(workspacePath: vscode.Uri) {
@@ -35,7 +36,7 @@ async function setRepositoryInfo(workspacePath: vscode.Uri) {
   result.setRepository({ url, hash });
 }
 
-function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri) {
+function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri, outputChannel: vscode.OutputChannel) {
   const config = vscode.workspace.getConfiguration("splinter");
 
   let analyzeResult = AnalyzeResult.getInstance();
@@ -64,9 +65,8 @@ function runAnalyzer(analyzer: Analyzer, workspacePath: vscode.Uri) {
         let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
         if (ok) {
           // Auto-annotate the recognized entities
-          const tags = analyzer.supportedAutoAnnotateTags();
-          for (const tag of tags) {
-            analyzer!.autoAnnotate(tag);
+          for (const tag of SUPPORTED_AUTO_ANNOTATE_TAGS) {
+            autoAnnotate(tag, analyzeResult, outputChannel);
           }
 
           // Save the result
@@ -188,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // Run the initial analysis
-  runAnalyzer(analyzer, workspacePath);
+  runAnalyzer(analyzer, workspacePath, outputChannel);
 
   /**********************************************************/
   /*                  Register commands                     */
@@ -214,7 +214,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     analyzeResult.clear();
 
-    runAnalyzer(analyzer!, workspacePath);
+    runAnalyzer(analyzer!, workspacePath, outputChannel);
   });
 
   vscode.commands.registerCommand("splinter.reload", async () => {
@@ -553,14 +553,14 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.autoAnnotate",
     async () => {
-      const tags = await vscode.window.showQuickPick(analyzer!.supportedAutoAnnotateTags(), {
+      const tags = await vscode.window.showQuickPick(SUPPORTED_AUTO_ANNOTATE_TAGS, {
         canPickMany: true,
         placeHolder: "Select the tag(s) to auto-annotate",
       });
 
       if (tags) {
         for (const tag of tags) {
-          analyzer!.autoAnnotate(tag);
+          autoAnnotate(tag, analyzeResult, outputChannel);
         }
         await analyzeResult.saveToStorage();
         analyzeResult.refreshViews();
