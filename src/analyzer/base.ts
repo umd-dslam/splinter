@@ -1,5 +1,5 @@
 import { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, appendNote, OperationLocator, Entity } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, appendNote, Entity, Operation } from "../model";
 
 export interface Analyzer {
   analyze: (onMessage: (msg: string) => void) => Promise<boolean>;
@@ -9,7 +9,7 @@ export interface Analyzer {
   autoAnnotate: (tag: string) => void;
   supportedAutoAnnotateTags: () => string[];
 
-  recognizeUnknownAggressively: () => [Entity, OperationLocator[]][];
+  recognizeUnknownAggressively: () => [Entity, [Entity, Operation][]][];
 }
 
 export function autoAnnotateCdaTran(result: AnalyzeResult, outputChannel: OutputChannel) {

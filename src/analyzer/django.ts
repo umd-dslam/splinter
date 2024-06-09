@@ -1,5 +1,5 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote, OperationLocator, Entity, Operation } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote, Entity, Operation } from "../model";
 import { Analyzer, autoAnnotateCdaTran } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
@@ -455,33 +455,26 @@ export class DjangoAnalyzer implements Analyzer {
         }
     }
 
-    recognizeUnknownAggressively(): [Entity, OperationLocator[]][] {
+    recognizeUnknownAggressively(): [Entity, [Entity, Operation][]][] {
         let entities = this.result.getGroup(AnalyzeResultGroup.recognized);
         let unknowns = this.result.getGroup(AnalyzeResultGroup.unknown);
         let baseEntityNames = this.getBaseEntityNames(entities);
-        let results: [Entity, OperationLocator[]][] = [];
+        let results: [Entity, [Entity, Operation][]][] = [];
         for (const [name, fullEntityName] of baseEntityNames) {
             if (fullEntityName === null) {
                 continue;
             }
             let nameSnakeCase = name.split(/(?=[A-Z])/).join('_').toLowerCase();
             let nameSnakeCasePlural = nameSnakeCase + "s";
-            let moveableOperationsExact: OperationLocator[] = [];
-            let moveableOperationsSnake: OperationLocator[] = [];
+            let moveableOperationsExact: [Entity, Operation][] = [];
+            let moveableOperationsSnake: [Entity, Operation][] = [];
             for (const unknownEntity of unknowns.values()) {
                 for (const unknownOperation of unknownEntity.operations) {
-                    const locator = {
-                        "name": unknownOperation.name,
-                        "parentName": unknownEntity.name,
-                        "filePath": unknownOperation.selection?.filePath,
-                        "fromLine": unknownOperation.selection?.fromLine,
-                        "fromColumn": unknownOperation.selection?.fromColumn,
-                    };
                     if (unknownOperation.name === name || unknownOperation.name.startsWith(name + ".")) {
-                        moveableOperationsExact.push(locator);
+                        moveableOperationsExact.push([unknownEntity, unknownOperation]);
                     } else if (unknownOperation.name === nameSnakeCase || unknownOperation.name.startsWith(nameSnakeCase + ".") ||
                         unknownOperation.name === nameSnakeCasePlural || unknownOperation.name.startsWith(nameSnakeCasePlural + ".")) {
-                        moveableOperationsSnake.push(locator);
+                        moveableOperationsSnake.push([unknownEntity, unknownOperation]);
                     }
                 }
             }

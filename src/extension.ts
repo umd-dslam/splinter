@@ -585,12 +585,18 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       for (const [step, [entity, operations]] of steps.entries()) {
-        const items = operations.map((op) => {
+        const items = operations.map(([ent, op]) => {
           return {
             label: op.name,
-            description: op.parentName,
+            description: `${op.arguments.length} args | ${ent.name}`,
             picked: true,
-            operation: op,
+            locator: {
+              "name": op.name,
+              "parentName": ent.name,
+              "filePath": op.selection?.filePath,
+              "fromLine": op.selection?.fromLine,
+              "fromColumn": op.selection?.fromColumn,
+            },
           };
         });
         const selected = await vscode.window.showQuickPick(items, {
@@ -603,7 +609,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const srcGroup = analyzeResult.getGroup(AnalyzeResultGroup.unknown);
-        moveOperations(srcGroup, entity, selected.map((item) => item.operation));
+        moveOperations(srcGroup, entity, selected.map((item) => item.locator));
         await analyzeResult.saveToStorage();
         analyzeResult.refreshViews();
       }
