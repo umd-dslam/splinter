@@ -465,26 +465,23 @@ export class DjangoAnalyzer implements Analyzer {
                 continue;
             }
             let nameSnakeCase = name.split(/(?=[A-Z])/).join('_').toLowerCase();
-            console.log(`${name}, ${nameSnakeCase}`);
             let nameSnakeCasePlural = nameSnakeCase + "s";
             let moveableOperationsExact: OperationLocator[] = [];
             let moveableOperationsSnake: OperationLocator[] = [];
             for (const unknownEntity of unknowns.values()) {
-                for (const [index, unknownOperation] of unknownEntity.operations.entries()) {
+                for (const unknownOperation of unknownEntity.operations) {
+                    const locator = {
+                        "name": unknownOperation.name,
+                        "parentName": unknownEntity.name,
+                        "filePath": unknownOperation.selection?.filePath,
+                        "fromLine": unknownOperation.selection?.fromLine,
+                        "fromColumn": unknownOperation.selection?.fromColumn,
+                    };
                     if (unknownOperation.name === name || unknownOperation.name.startsWith(name + ".")) {
-                        moveableOperationsExact.push({
-                            "name": unknownOperation.name,
-                            "parentName": unknownEntity.name,
-                            "idInParent": index,
-                        });
-                    }
-                    if (unknownOperation.name === nameSnakeCase || unknownOperation.name.startsWith(nameSnakeCase + ".") ||
+                        moveableOperationsExact.push(locator);
+                    } else if (unknownOperation.name === nameSnakeCase || unknownOperation.name.startsWith(nameSnakeCase + ".") ||
                         unknownOperation.name === nameSnakeCasePlural || unknownOperation.name.startsWith(nameSnakeCasePlural + ".")) {
-                        moveableOperationsSnake.push({
-                            "name": unknownOperation.name,
-                            "parentName": unknownEntity.name,
-                            "idInParent": index,
-                        });
+                        moveableOperationsSnake.push(locator);
                     }
                 }
             }

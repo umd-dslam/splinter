@@ -224,26 +224,43 @@ export function groupOperationTypes(
 }
 
 export type OperationLocator = {
-  name: string; parentName: string; idInParent: number
+  name: string;
+  parentName: string;
+  filePath: String | undefined;
+  fromLine: number | undefined;
+  fromColumn: number | undefined;
 };
 
 export function moveOperations(srcGroup: Map<string, Entity>, targetEntity: Entity, operations: OperationLocator[]) {
-  let deletedItems: [number, Entity][] = [];
+  const deletedItems: [number, Entity][] = [];
   for (const movedOperation of operations) {
     // Look up the source entity
-    let srcEntity = srcGroup.get(movedOperation.parentName) || srcGroup.get(`[${movedOperation.parentName}]`);
+    const srcEntity = srcGroup.get(movedOperation.parentName) || srcGroup.get(`[${movedOperation.parentName}]`);
     if (!srcEntity || srcEntity === targetEntity) {
       continue;
     }
+
     // Get the operation
-    let operation = srcEntity.operations[movedOperation.idInParent];
-    if (!operation) {
+    let operation = undefined;
+    let operationIndex = undefined;
+    for (const [index, op] of srcEntity.operations.entries()) {
+      if (op.name === movedOperation.name &&
+        op.selection?.filePath === movedOperation.filePath &&
+        op.selection?.fromLine === movedOperation.fromLine &&
+        op.selection?.fromColumn === movedOperation.fromColumn) {
+        operation = op;
+        operationIndex = index;
+        break;
+      }
+    }
+    if (!operation || !operationIndex) {
       continue;
     }
+
     // Push the operation to the target entity
     targetEntity.operations.push(operation);
     // Save the index and source entity for deletion later
-    deletedItems.push([movedOperation.idInParent, srcEntity]);
+    deletedItems.push([operationIndex, srcEntity]);
   }
 
   // Sort by index in descending order before deleting to avoid index shift

@@ -241,7 +241,9 @@ export class ORMItemProvider
         .map((item) => ({
           name: item.inner.name,
           parentName: item.parent!.inner.name,
-          idInParent: item.idInParent,
+          filePath: item.inner.selection?.filePath,
+          fromLine: item.inner.selection?.fromLine,
+          fromColumn: item.inner.selection?.fromColumn,
         })),
     };
 
