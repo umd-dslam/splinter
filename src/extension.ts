@@ -606,6 +606,7 @@ export function activate(context: vscode.ExtensionContext) {
     async () => {
       const filtersStr = await vscode.window.showInputBox({
         placeHolder: "Enter expressions to filter the Recognized entities. Use comma to separate multiple expressions.",
+        value: recognizedProvider.getFilters().join(", "),
       });
 
       if (filtersStr === undefined) {
@@ -633,6 +634,7 @@ export function activate(context: vscode.ExtensionContext) {
     async () => {
       const filtersStr = await vscode.window.showInputBox({
         placeHolder: "Enter expressions to filter the Recognized entities. Use comma to separate multiple expressions.",
+        value: unknownProvider.getFilters().join(", "),
       });
 
       if (filtersStr === undefined) {

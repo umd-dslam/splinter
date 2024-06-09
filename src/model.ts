@@ -17,9 +17,14 @@ export function entityIncludes(entity: Entity, filters: string[]): boolean {
     return true;
   }
   return filters.some((filter) => {
-    const filterLower = filter.toLowerCase();
-    return entity.name.toLowerCase().includes(filterLower) ||
-      entity.note.toLowerCase().includes(filterLower);
+    const regex = toRegExp(filter);
+    if (regex) {
+      return regex.test(entity.name) || regex.test(entity.note);
+    } else {
+      const filterLower = filter.toLowerCase();
+      return entity.name.toLowerCase().includes(filterLower) ||
+        entity.note.toLowerCase().includes(filterLower);
+    }
   });
 }
 
@@ -37,14 +42,20 @@ export function operationIncludes(operation: Operation, filters: string[]): bool
     return true;
   }
   return filters.some((filter) => {
-    const filterLower = filter.toLowerCase();
-    return operation.name.toLowerCase().includes(filterLower) ||
-      operation.note.toLowerCase().includes(filterLower) ||
-      operation.type.toLowerCase().includes(filterLower) ||
-      operation.arguments.some((arg) =>
-        arg.name.toLowerCase().includes(filterLower) ||
-        arg.note.toLowerCase().includes(filterLower)
-      );
+    const regex = toRegExp(filter);
+    if (regex) {
+      return regex.test(operation.name) || regex.test(operation.note) ||
+        operation.arguments.some((arg) => regex.test(arg.name) || regex.test(arg.note));
+    } else {
+      const filterLower = filter.toLowerCase();
+      return operation.name.toLowerCase().includes(filterLower) ||
+        operation.note.toLowerCase().includes(filterLower) ||
+        operation.type.toLowerCase().includes(filterLower) ||
+        operation.arguments.some((arg) =>
+          arg.name.toLowerCase().includes(filterLower) ||
+          arg.note.toLowerCase().includes(filterLower)
+        );
+    }
   });
 }
 
@@ -305,4 +316,13 @@ export function appendNote(note: string, more: string): string {
     return more;
   }
   return note + " " + more;
+}
+
+function toRegExp(filter: string): RegExp | undefined {
+  const match = filter.match(/^\/(.+)\/([gimsuy]*)$/);
+  if (match) {
+    const pattern = match[1];
+    const modifier = match[2];
+    return new RegExp(pattern, modifier);
+  }
 }

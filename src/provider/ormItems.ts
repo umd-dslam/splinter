@@ -296,6 +296,10 @@ export class ORMItemProvider
     this.filters = filters;
   }
 
+  getFilters(): string[] {
+    return this.filters;
+  }
+
   clearFilters(): void {
     this.filters = [];
   }
