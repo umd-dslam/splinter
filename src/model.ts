@@ -44,7 +44,7 @@ export function operationIncludes(operation: Operation, filters: string[]): bool
       operation.arguments.some((arg) =>
         arg.name.toLowerCase().includes(filterLower) ||
         arg.note.toLowerCase().includes(filterLower)
-      )
+      );
   });
 }
 
@@ -210,6 +210,35 @@ export function groupOperationTypes(
   }
 
   return result;
+}
+
+export type OperationLocator = {
+  name: string; parentName: string; idInParent: number
+};
+
+export function moveOperations(srcGroup: Map<string, Entity>, targetEntity: Entity, operations: OperationLocator[]) {
+  let deletedItems: [number, Entity][] = [];
+  for (const movedOperation of operations) {
+    // Look up the source entity
+    let srcEntity = srcGroup.get(movedOperation.parentName) || srcGroup.get(`[${movedOperation.parentName}]`);
+    if (!srcEntity || srcEntity === targetEntity) {
+      continue;
+    }
+    // Get the operation
+    let operation = srcEntity.operations[movedOperation.idInParent];
+    if (!operation) {
+      continue;
+    }
+    // Push the operation to the target entity
+    targetEntity.operations.push(operation);
+    // Save the index and source entity for deletion later
+    deletedItems.push([movedOperation.idInParent, srcEntity]);
+  }
+
+  // Sort by index in descending order before deleting to avoid index shift
+  for (const [index, entity] of deletedItems.sort(([a], [b]) => b - a)) {
+    entity.operations.splice(index, 1);
+  }
 }
 
 export const FULL_SCAN = "full-scan";

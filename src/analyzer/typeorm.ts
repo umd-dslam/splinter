@@ -1,5 +1,5 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, OperationLocator, Entity } from "../model";
 import { Analyzer, autoAnnotateCdaTran } from "./base";
 import {
   EntityMessage,
@@ -290,5 +290,9 @@ export class TypeORMAnalyzer implements Analyzer {
       default:
         vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
     }
+  }
+
+  recognizeUnknownAggressively(): [Entity, OperationLocator[]][] {
+    return [];
   }
 }

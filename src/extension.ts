@@ -4,11 +4,12 @@ import glob from 'glob';
 import { ORMItem, ORMItemProvider } from "./provider/ormItems";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { DjangoAnalyzer } from "./analyzer/django";
-import { AnalyzeResult, AnalyzeResultGroup, Operation, appendNote } from "./model";
+import { AnalyzeResult, AnalyzeResultGroup, Operation, appendNote, moveOperations } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
 import { Entity, getCurrentSelection, TAGS } from "./model";
+import pluralize from "pluralize";
 
 // Sets the git hash and repository URL in the result
 async function setRepositoryInfo(workspacePath: vscode.Uri) {
@@ -564,6 +565,38 @@ export function activate(context: vscode.ExtensionContext) {
         }
         await analyzeResult.saveToStorage();
         analyzeResult.refreshViews();
+      }
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.recognizeUnknownAggressively",
+    async () => {
+      let steps = analyzer!.recognizeUnknownAggressively();
+      let numSteps = steps.length;
+      if (numSteps === 0) {
+        await vscode.window.showInformationMessage("No operations to move.");
+        return;
+      }
+      for (let [step, [entity, operations]] of steps.entries()) {
+        let detail = operations
+          .map((op) => `${op.name} [${op.parentName}]`)
+          .join("\n");
+        let confirm = await vscode.window.showInformationMessage(
+          `[${step + 1}/${numSteps}] Move ${pluralize("operations", operations.length, true)} to ${entity.name
+          }?`,
+          { modal: true, detail },
+          "Yes", "No"
+        );
+
+        if (confirm === "Yes") {
+          let srcGroup = analyzeResult.getGroup(AnalyzeResultGroup.unknown);
+          moveOperations(srcGroup, entity, operations);
+          await analyzeResult.saveToStorage();
+          analyzeResult.refreshViews();
+        } else if (confirm !== "No") {
+          break;
+        }
       }
     }
   );

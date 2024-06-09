@@ -1,5 +1,5 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote, OperationLocator, Entity, Operation } from "../model";
 import { Analyzer, autoAnnotateCdaTran } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
@@ -184,23 +184,7 @@ export class DjangoAnalyzer implements Analyzer {
     private collectOperations(messages: Message[]) {
         const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
         const unknowns = this.result.getGroup(AnalyzeResultGroup.unknown);
-
-        const baseEntityNames: Map<string, string | null> = new Map();
-        for (const name of entities.keys()) {
-            if (name.startsWith("[")) {
-                continue;
-            }
-            let baseName = name;
-            const lastDot = name.lastIndexOf(".");
-            if (lastDot !== -1) {
-                baseName = name.substring(lastDot + 1);
-            }
-            if (baseEntityNames.has(baseName)) {
-                baseEntityNames.set(baseName, null);
-            } else {
-                baseEntityNames.set(baseName, name);
-            }
-        }
+        const baseEntityNames = this.getBaseEntityNames(entities);
 
         for (const msg of messages) {
             const content = msg.content;
@@ -469,5 +453,69 @@ export class DjangoAnalyzer implements Analyzer {
                 }
             }
         }
+    }
+
+    recognizeUnknownAggressively(): [Entity, OperationLocator[]][] {
+        let entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        let unknowns = this.result.getGroup(AnalyzeResultGroup.unknown);
+        let baseEntityNames = this.getBaseEntityNames(entities);
+        let results: [Entity, OperationLocator[]][] = [];
+        for (const [name, fullEntityName] of baseEntityNames) {
+            if (fullEntityName === null) {
+                continue;
+            }
+            let nameSnakeCase = name.split(/(?=[A-Z])/).join('_').toLowerCase();
+            console.log(`${name}, ${nameSnakeCase}`);
+            let nameSnakeCasePlural = nameSnakeCase + "s";
+            let moveableOperationsExact: OperationLocator[] = [];
+            let moveableOperationsSnake: OperationLocator[] = [];
+            for (const unknownEntity of unknowns.values()) {
+                for (const [index, unknownOperation] of unknownEntity.operations.entries()) {
+                    if (unknownOperation.name === name || unknownOperation.name.startsWith(name + ".")) {
+                        moveableOperationsExact.push({
+                            "name": unknownOperation.name,
+                            "parentName": unknownEntity.name,
+                            "idInParent": index,
+                        });
+                    }
+                    if (unknownOperation.name === nameSnakeCase || unknownOperation.name.startsWith(nameSnakeCase + ".") ||
+                        unknownOperation.name === nameSnakeCasePlural || unknownOperation.name.startsWith(nameSnakeCasePlural + ".")) {
+                        moveableOperationsSnake.push({
+                            "name": unknownOperation.name,
+                            "parentName": unknownEntity.name,
+                            "idInParent": index,
+                        });
+                    }
+                }
+            }
+            let entity = entities.get(fullEntityName)!;
+            if (moveableOperationsExact.length > 0) {
+                results.push([entity, moveableOperationsExact]);
+            }
+            if (moveableOperationsSnake.length > 0) {
+                results.push([entity, moveableOperationsSnake]);
+            }
+        }
+        return results;
+    }
+
+    private getBaseEntityNames(entities: Map<string, Entity>): Map<string, string | null> {
+        const baseEntityNames = new Map();
+        for (const name of entities.keys()) {
+            if (name.startsWith("[")) {
+                continue;
+            }
+            let baseName = name;
+            const lastDot = name.lastIndexOf(".");
+            if (lastDot !== -1) {
+                baseName = name.substring(lastDot + 1);
+            }
+            if (baseEntityNames.has(baseName)) {
+                baseEntityNames.set(baseName, null);
+            } else {
+                baseEntityNames.set(baseName, name);
+            }
+        }
+        return baseEntityNames;
     }
 }

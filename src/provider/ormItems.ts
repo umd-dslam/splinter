@@ -8,6 +8,8 @@ import {
   groupOperationTypes,
   entityIncludes,
   operationIncludes,
+  OperationLocator,
+  moveOperations,
 } from "../model";
 import path from "path";
 import pluralize from "pluralize";
@@ -22,7 +24,7 @@ export type ORMItem = {
 
 type DragAndDropDataType = {
   resultGroup: AnalyzeResultGroup;
-  items: { name: string; parentName: string; idInParent: number }[];
+  items: OperationLocator[];
 };
 
 function computeCDA(item: ORMItem): number | null {
@@ -285,29 +287,7 @@ export class ORMItemProvider
 
     let analyzeResult = AnalyzeResult.getInstance();
     let srcGroup = analyzeResult.getGroup(parsed.resultGroup);
-    let deletedItems: [number, Entity][] = [];
-    let targetEntity = target.inner as Entity;
-    for (const movedItem of items) {
-      // Look up the source entity
-      let srcEntity = srcGroup.get(movedItem.parentName);
-      if (!srcEntity || srcEntity === target.inner) {
-        continue;
-      }
-      // Get the operation
-      let operation = srcEntity.operations[movedItem.idInParent];
-      if (!operation) {
-        continue;
-      }
-      // Push the operation to the target entity
-      targetEntity.operations.push(operation);
-      // Save the index and source entity for deletion later
-      deletedItems.push([movedItem.idInParent, srcEntity]);
-    }
-
-    // Sort by index in descending order before deleting to avoid index shift
-    for (const [index, entity] of deletedItems.sort(([a], [b]) => b - a)) {
-      entity.operations.splice(index, 1);
-    }
+    moveOperations(srcGroup, target.inner as Entity, items);
 
     await analyzeResult.saveToStorage();
   }
