@@ -554,14 +554,20 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.autoAnnotate",
     async () => {
-      const tags = await vscode.window.showQuickPick(analyzer!.supportedAutoAnnotateTags(), {
+      const items = analyzer!.supportedAutoAnnotateTags().map((tag) => {
+        return {
+          label: tag,
+          picked: true,
+        };
+      });
+      const tags = await vscode.window.showQuickPick(items, {
         canPickMany: true,
         placeHolder: "Select the tag(s) to auto-annotate",
       });
 
       if (tags) {
         for (const tag of tags) {
-          analyzer!.autoAnnotate(tag);
+          analyzer!.autoAnnotate(tag.label);
         }
         await analyzeResult.saveToStorage();
         analyzeResult.refreshViews();
@@ -572,31 +578,34 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand(
     "splinter.recognizeUnknownAggressively",
     async () => {
-      let steps = analyzer!.recognizeUnknownAggressively();
-      let numSteps = steps.length;
+      const steps = analyzer!.recognizeUnknownAggressively();
+      const numSteps = steps.length;
       if (numSteps === 0) {
         await vscode.window.showInformationMessage("No operations to move.");
         return;
       }
-      for (let [step, [entity, operations]] of steps.entries()) {
-        let detail = operations
-          .map((op) => `${op.name} [${op.parentName}]`)
-          .join("\n");
-        let confirm = await vscode.window.showInformationMessage(
-          `[${step + 1}/${numSteps}] Move ${pluralize("operations", operations.length, true)} to ${entity.name
-          }?`,
-          { modal: true, detail },
-          "Yes", "No"
-        );
+      for (const [step, [entity, operations]] of steps.entries()) {
+        const items = operations.map((op) => {
+          return {
+            label: op.name,
+            description: op.parentName,
+            picked: true,
+            operation: op,
+          };
+        });
+        const selected = await vscode.window.showQuickPick(items, {
+          canPickMany: true,
+          placeHolder: `[${step + 1}/${numSteps}] ${entity.name}`,
+        });
 
-        if (confirm === "Yes") {
-          let srcGroup = analyzeResult.getGroup(AnalyzeResultGroup.unknown);
-          moveOperations(srcGroup, entity, operations);
-          await analyzeResult.saveToStorage();
-          analyzeResult.refreshViews();
-        } else if (confirm !== "No") {
+        if (selected === undefined) {
           break;
         }
+
+        const srcGroup = analyzeResult.getGroup(AnalyzeResultGroup.unknown);
+        moveOperations(srcGroup, entity, selected.map((item) => item.operation));
+        await analyzeResult.saveToStorage();
+        analyzeResult.refreshViews();
       }
     }
   );
