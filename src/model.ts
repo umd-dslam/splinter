@@ -253,7 +253,7 @@ export function moveOperations(srcGroup: Map<string, Entity>, targetEntity: Enti
         break;
       }
     }
-    if (!operation || !operationIndex) {
+    if (operation === undefined || operationIndex === undefined) {
       continue;
     }
 
