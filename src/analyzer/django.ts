@@ -1,6 +1,6 @@
 import vscode, { OutputChannel } from "vscode";
 import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, FULL_SCAN, appendNote, Entity, Operation } from "../model";
-import { Analyzer, autoAnnotateCdaTran } from "./base";
+import { Analyzer, autoAnnotateCdaTran, updateEntityAnnotation } from "./base";
 import child_process from "child_process";
 import tmp from "tmp";
 import path from "path";
@@ -374,6 +374,7 @@ export class DjangoAnalyzer implements Analyzer {
             default:
                 vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
         }
+        updateEntityAnnotation(this.result);
     }
 
     autoAnnotateFullScan() {

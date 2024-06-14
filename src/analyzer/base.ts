@@ -1,5 +1,5 @@
 import { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, appendNote, Entity, Operation } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, appendNote, Entity, Operation } from "../model";
 
 export interface Analyzer {
   analyze: (onMessage: (msg: string) => void) => Promise<boolean>;
@@ -61,5 +61,31 @@ export function autoAnnotateCdaTran(result: AnalyzeResult, outputChannel: Output
     } else if (!cdaTran) {
       outputChannel.appendLine(`Double-check tag "${CDA_TRAN}" that was manually added for ${entity.name}`);
     }
+  }
+}
+
+export function updateEntityAnnotation(result: AnalyzeResult) {
+  const entities = result.getGroup(AnalyzeResultGroup.recognized);
+
+  const summarize = (entity: Entity, tag: string) => {
+    const autoTag = `${tag}(a)`;
+    let hasTag = false;
+    for (const operation of entity.operations) {
+      if (operation.note.includes(tag)) {
+        hasTag = true;
+        break;
+      }
+    }
+    if (hasTag && !entity.note.includes(tag)) {
+      entity.note = appendNote(entity.note, autoTag);
+    } else if (!hasTag && entity.note.includes(autoTag)) {
+      entity.note = entity.note.replace(` ${autoTag}`, "");
+      entity.note = entity.note.replace(autoTag, "");
+    }
+  };
+
+  for (const entity of entities.values()) {
+    summarize(entity, NON_TRIVIAL);
+    summarize(entity, NON_EQ);
   }
 }
