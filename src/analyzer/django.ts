@@ -426,7 +426,6 @@ export class DjangoAnalyzer implements Analyzer {
                             break;
                         case NON_TRIVIAL:
                             if ([
-                                "iexact",
                                 "contains",
                                 "icontains",
                                 "startswith",
