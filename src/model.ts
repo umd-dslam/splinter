@@ -42,6 +42,19 @@ export function operationIncludes(operation: Operation, filters: string[]): bool
     return true;
   }
   return filters.some((filter) => {
+    // Special syntax ?noarg(filter) where filter is applied to the operation if it has no arguments. 
+    const matchNoArg = filter.match(/^\?noarg(\((.+)\))?$/);
+    if (matchNoArg) {
+      if (operation.arguments.length > 0) {
+        return false;
+      }
+      if (matchNoArg[2]) {
+        filter = matchNoArg[2];
+      } else {
+        return true;
+      }
+    }
+
     const regex = toRegExp(filter);
     if (regex) {
       return regex.test(operation.name) || regex.test(operation.note) ||
