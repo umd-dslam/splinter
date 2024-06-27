@@ -21,16 +21,16 @@ export function autoAnnotateCdaTran(
 
   for (const entity of entities.values()) {
     const cdas: Set<string>[] = [];
-    const cdaIndex: { [key: string]: Operation[] } = {};
+    const cdaIndex: Map<string, Operation[]> = new Map();
     for (const op of entity.operations) {
       const cda: Set<string> = new Set(getCda(op));
       if (cda.size > 0) {
         const cdaKey = Array.from(cda).sort().join(",");
-        if (!cdaIndex[cdaKey]) {
+        if (!cdaIndex.get(cdaKey)) {
           cdas.push(cda);
-          cdaIndex[cdaKey] = [];
+          cdaIndex.set(cdaKey, []);
         }
-        cdaIndex[cdaKey].push(op);
+        cdaIndex.get(cdaKey)!.push(op);
       }
     }
 
@@ -85,23 +85,23 @@ export function autoAnnotateCdaTran(
       const cdaKey = Array.from(node.cda).sort().join(",");
       if (node.cda.size > 0) {
         path.push(cdaKey);
-        value += cdaIndex[cdaKey] ? cdaIndex[cdaKey].length : 0;
+        value += cdaIndex.has(cdaKey) ? cdaIndex.get(cdaKey)!.length : 0;
       }
       return [path, value];
     }
 
     const [bestPath] = findBestPath(graph);
     for (const cdaKey of bestPath) {
-      if (cdaIndex[cdaKey]) {
-        for (const operation of cdaIndex[cdaKey]) {
+      if (cdaIndex.has(cdaKey)) {
+        for (const operation of cdaIndex.get(cdaKey)!) {
           if (operation.note.includes(CDA_TRAN)) {
             outputChannel.appendLine(`Double-check tag "${CDA_TRAN}" that was manually added for ${operation.name}`);
           }
         }
       }
-      cdaIndex[cdaKey] = [];
+      cdaIndex.delete(cdaKey);
     }
-    for (const remainingOperations of Object.values(cdaIndex)) {
+    for (const remainingOperations of cdaIndex.values()) {
       for (const operation of remainingOperations) {
         if (!operation.note.includes(CDA_TRAN)) {
           operation.note = appendNote(operation.note, `${CDA_TRAN}(a)`);
