@@ -576,6 +576,20 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.commands.registerCommand(
+    "splinter.clearAutoAnnotate",
+    async () => {
+      analyzeResult.getGroup(AnalyzeResultGroup.recognized).forEach((entity) => {
+        entity.operations.forEach((operation) => {
+          operation.note = operation.note.replace(/ ?\S+\(a\)/g, "").trim();
+        })
+        entity.note = entity.note.replace(/ ?\S+\(a\)/g, "").trim();
+      })
+      await analyzeResult.saveToStorage();
+      analyzeResult.refreshViews();
+    }
+  );
+
+  vscode.commands.registerCommand(
     "splinter.recognizeUnknownAggressively",
     async () => {
       const steps = analyzer!.recognizeUnknownAggressively();

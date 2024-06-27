@@ -12,54 +12,111 @@ export interface Analyzer {
   recognizeUnknownAggressively: () => [Entity, [Entity, Operation][]][];
 }
 
-export function autoAnnotateCdaTran(result: AnalyzeResult, outputChannel: OutputChannel) {
-  const covers = (bigger: string[], smaller: string[]) => {
-    if (bigger.length < smaller.length) {
-      [bigger, smaller] = [smaller, bigger];
-    }
-    for (const column of smaller) {
-      if (!bigger.includes(column)) {
-        return false;
-      }
-    }
-    return true;
-  };
-
+export function autoAnnotateCdaTran(
+  result: AnalyzeResult,
+  getCda: (operation: Operation) => string[],
+  outputChannel: OutputChannel
+) {
   const entities = result.getGroup(AnalyzeResultGroup.recognized);
+
   for (const entity of entities.values()) {
-    // Collect all CDAs on the entity
-    const cdas: string[][] = [];
-    for (const operation of entity.operations) {
-      const cda: string[] = [];
-      for (const arg of operation.arguments) {
-        const parts = arg.name.split("__");
-        if (0 < parts.length && parts.length <= 2) {
-          cda.push(parts[0]);
+    const cdas: Set<string>[] = [];
+    const cdaIndex: { [key: string]: Operation[] } = {};
+    for (const op of entity.operations) {
+      const cda: Set<string> = new Set(getCda(op));
+      if (cda.size > 0) {
+        const cdaKey = Array.from(cda).sort().join(",");
+        if (!cdaIndex[cdaKey]) {
+          cdas.push(cda);
+          cdaIndex[cdaKey] = [];
         }
-      }
-      if (cda.length > 0) {
-        cdas.push(cda);
+        cdaIndex[cdaKey].push(op);
       }
     }
-    // Check if all CDAs are covered by each other
-    let cdaTran = false;
-    for (let i = 0; i < cdas.length; i++) {
-      for (let j = 0; j < cdas.length; j++) {
-        if (i === j) {
-          continue;
+
+    type GraphNode = {
+      cda: Set<string>;
+      children: GraphNode[];
+    };
+
+    const graph: GraphNode = {
+      cda: new Set(),
+      children: []
+    };
+
+    function isSubset(subset: Set<string>, superset: Set<string>): boolean {
+      for (const elem of subset) {
+        if (!superset.has(elem)) {
+          return false;
         }
-        if (!covers(cdas[i], cdas[j])) {
-          cdaTran = true;
+      }
+      return true;
+    }
+
+    function addChild(children: GraphNode[], c: Set<string>): void {
+      let added = false;
+      for (const child of children) {
+        if (isSubset(c, child.cda)) {
+          addChild(child.children, c);
+          added = true;
           break;
         }
       }
-    }
-    if (!entity.note.includes(CDA_TRAN)) {
-      if (cdaTran) {
-        entity.note = appendNote(entity.note, `${CDA_TRAN}(a)`);
+      if (!added) {
+        children.push({ cda: c, children: [] });
       }
-    } else if (!cdaTran) {
-      outputChannel.appendLine(`Double-check tag "${CDA_TRAN}" that was manually added for ${entity.name}`);
+    }
+
+    cdas.sort((a, b) => b.size - a.size);
+    for (const cda of cdas) {
+      addChild(graph.children, cda);
+    }
+
+    function findBestPath(node: GraphNode): [string[], number] {
+      let path: string[] = [];
+      let value = 0;
+      for (const child of node.children) {
+        const [cpath, cvalue] = findBestPath(child);
+        if (cvalue > value) {
+          path = cpath;
+          value = cvalue;
+        }
+      }
+      const cdaKey = Array.from(node.cda).sort().join(",");
+      if (node.cda.size > 0) {
+        path.push(cdaKey);
+        value += cdaIndex[cdaKey] ? cdaIndex[cdaKey].length : 0;
+      }
+      return [path, value];
+    }
+
+    const [bestPath] = findBestPath(graph);
+    for (const cdaKey of bestPath) {
+      if (cdaIndex[cdaKey]) {
+        for (const operation of cdaIndex[cdaKey]) {
+          if (operation.note.includes(CDA_TRAN)) {
+            outputChannel.appendLine(`Double-check tag "${CDA_TRAN}" that was manually added for ${operation.name}`);
+          }
+        }
+      }
+      cdaIndex[cdaKey] = [];
+    }
+    for (const remainingOperations of Object.values(cdaIndex)) {
+      for (const operation of remainingOperations) {
+        if (!operation.note.includes(CDA_TRAN)) {
+          operation.note = appendNote(operation.note, `${CDA_TRAN}(a)`);
+        }
+      }
+    }
+    const bestCda = bestPath[bestPath.length - 1];
+    if (bestCda) {
+      if (!entity.note.includes("cda[")) {
+        if (bestCda.length > 0) {
+          entity.note = appendNote(entity.note, `cda[${bestCda}](a)`);
+        }
+      } else if (bestCda.length === 0) {
+        outputChannel.appendLine(`Double-check cda list that was manually added for ${entity.name}`);
+      }
     }
   }
 }
@@ -79,13 +136,13 @@ export function updateEntityAnnotation(result: AnalyzeResult) {
     if (hasTag && !entity.note.includes(tag)) {
       entity.note = appendNote(entity.note, autoTag);
     } else if (!hasTag && entity.note.includes(autoTag)) {
-      entity.note = entity.note.replace(` ${autoTag}`, "");
-      entity.note = entity.note.replace(autoTag, "");
+      entity.note = entity.note.replace(` ${autoTag}`, "").replace(autoTag, "");
     }
   };
 
   for (const entity of entities.values()) {
     summarize(entity, NON_TRIVIAL);
     summarize(entity, NON_EQ);
+    summarize(entity, CDA_TRAN);
   }
 }

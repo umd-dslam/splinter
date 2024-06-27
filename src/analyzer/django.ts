@@ -365,7 +365,7 @@ export class DjangoAnalyzer implements Analyzer {
                 this.autoAnnotateFullScan();
                 break;
             case CDA_TRAN:
-                autoAnnotateCdaTran(this.result, this.outputChannel);
+                this.autoAnnotateCdaTran();
                 break;
             case NON_EQ:
             case NON_TRIVIAL:
@@ -393,6 +393,34 @@ export class DjangoAnalyzer implements Analyzer {
                 }
             } else if (!hasFullScan) {
                 this.outputChannel.appendLine(`Double-check tag "${FULL_SCAN}" that was manually added for ${entity.name}`);
+            }
+        }
+    }
+
+    autoAnnotateCdaTran() {
+        function getCda(operation: Operation): string[] {
+            const cda: string[] = [];
+            for (const arg of operation.arguments) {
+                const parts = arg.name.split("__");
+                if (0 < parts.length && parts.length <= 2) {
+                    cda.push(parts[0]);
+                }
+            }
+            return cda;
+        }
+
+        autoAnnotateCdaTran(this.result, getCda, this.outputChannel);
+
+        const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
+        for (const entity of entities.values()) {
+            for (const operation of entity.operations) {
+                if (operation.type === "read"
+                    && (operation.name.endsWith("get") || operation.name.endsWith("filter"))
+                    && operation.arguments.length === 0) {
+                    if (!operation.note.includes(CDA_TRAN)) {
+                        operation.note = appendNote(operation.note, `${CDA_TRAN}(a)`);
+                    }
+                }
             }
         }
     }

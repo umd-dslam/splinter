@@ -252,6 +252,11 @@
         "category": "Splinter"
       },
       {
+        "command": "splinter.clearAutoAnnotate",
+        "title": "Clear auto annotate",
+        "category": "Splinter"
+      },
+      {
         "command": "splinter.recognizeUnknownAggressively",
         "title": "Recognize unknown aggressively",
         "category": "Splinter"

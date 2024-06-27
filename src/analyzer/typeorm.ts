@@ -285,7 +285,14 @@ export class TypeORMAnalyzer implements Analyzer {
   autoAnnotate(tag: string) {
     switch (tag) {
       case CDA_TRAN:
-        autoAnnotateCdaTran(this.result, this.outputChannel);
+        function getCda(operation: Operation): string[] {
+          const cda: string[] = [];
+          for (const arg of operation.arguments) {
+            cda.push(arg.name);
+          }
+          return cda;
+        }
+        autoAnnotateCdaTran(this.result, getCda, this.outputChannel);
         break;
       default:
         vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
