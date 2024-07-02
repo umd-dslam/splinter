@@ -168,6 +168,7 @@ export function activate(context: vscode.ExtensionContext) {
     treeDataProvider: recognizedProvider,
     canSelectMany: true,
     dragAndDropController: recognizedProvider,
+    showCollapseAll: true
   });
   context.subscriptions.push(recognizedTreeView);
 
@@ -179,6 +180,7 @@ export function activate(context: vscode.ExtensionContext) {
     treeDataProvider: unknownProvider,
     canSelectMany: true,
     dragAndDropController: unknownProvider,
+    showCollapseAll: true,
   });
   context.subscriptions.push(unknownTreeView);
 

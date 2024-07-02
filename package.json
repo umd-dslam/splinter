@@ -156,31 +156,41 @@
         {
           "command": "splinter.entity.add",
           "when": "view == recognized",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "splinter.filter.createRecognized",
           "when": "view == recognized && !splinter.hasFilterInRecognized",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "splinter.filter.createUnknown",
           "when": "view == unknown && !splinter.hasFilterInUnknown",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "splinter.filter.clearRecognized",
           "when": "view == recognized && splinter.hasFilterInRecognized",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "splinter.filter.clearUnknown",
           "when": "view == unknown && splinter.hasFilterInUnknown",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ]
     },
     "commands": [
+      {
+        "command": "splinter.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "splinter.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
+      },
       {
         "command": "splinter.item.show",
         "title": "Show Item"

@@ -79,7 +79,7 @@ export class ORMItemProvider
       // Determine tree state
       treeItem.collapsibleState =
         inner.operations.length > 0
-          ? vscode.TreeItemCollapsibleState.Collapsed
+          ? vscode.TreeItemCollapsibleState.Expanded
           : vscode.TreeItemCollapsibleState.None;
       // Compute description
       description.push(
@@ -238,6 +238,10 @@ export class ORMItemProvider
         idInParent: -1,
         resultGroup: this.resultGroup,
       }));
+  }
+
+  getParent(element: ORMItem): vscode.ProviderResult<ORMItem> {
+    return element.parent;
   }
 
   private _onDidChangeTreeData: vscode.EventEmitter<
