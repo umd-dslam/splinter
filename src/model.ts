@@ -19,11 +19,12 @@ export function entityIncludes(entity: Entity, filters: string[]): boolean {
   return filters.some((filter) => {
     const regex = toRegExp(filter);
     if (regex) {
-      return regex.test(entity.name) || regex.test(entity.note);
+      return regex.test(entity.name) || regex.test(entity.note) || regex.test(entity.selection?.filePath || "");
     } else {
       const filterLower = filter.toLowerCase();
       return entity.name.toLowerCase().includes(filterLower) ||
-        entity.note.toLowerCase().includes(filterLower);
+        entity.note.toLowerCase().includes(filterLower) ||
+        (entity.selection?.filePath || "").toLowerCase().includes(filterLower);
     }
   });
 }
@@ -58,12 +59,14 @@ export function operationIncludes(operation: Operation, filters: string[]): bool
     const regex = toRegExp(filter);
     if (regex) {
       return regex.test(operation.name) || regex.test(operation.note) ||
-        operation.arguments.some((arg) => regex.test(arg.name) || regex.test(arg.note));
+        operation.arguments.some((arg) => regex.test(arg.name) ||
+          regex.test(arg.note) || regex.test(arg.selection?.filePath || ""));
     } else {
       const filterLower = filter.toLowerCase();
       return operation.name.toLowerCase().includes(filterLower) ||
         operation.note.toLowerCase().includes(filterLower) ||
         operation.type.toLowerCase().includes(filterLower) ||
+        (operation.selection?.filePath || "").toLowerCase().includes(filterLower) ||
         operation.arguments.some((arg) =>
           arg.name.toLowerCase().includes(filterLower) ||
           arg.note.toLowerCase().includes(filterLower)
