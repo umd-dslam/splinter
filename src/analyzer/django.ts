@@ -387,7 +387,6 @@ export class DjangoAnalyzer implements Analyzer {
                         operation.note = appendNote(operation.note, `${FULL_SCAN}(a)`);
                     }
                     hasFullScan = true;
-                    break;
                 }
             }
             if (!entity.note.includes(FULL_SCAN)) {
