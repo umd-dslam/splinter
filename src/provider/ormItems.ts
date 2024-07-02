@@ -8,8 +8,9 @@ import {
   groupOperationTypes,
   entityIncludes,
   operationIncludes,
-  OperationLocator,
+  MovedItemLocator,
   moveOperations,
+  moveArguments,
 } from "../model";
 import path from "path";
 import pluralize from "pluralize";
@@ -24,7 +25,8 @@ export type ORMItem = {
 
 type DragAndDropDataType = {
   resultGroup: AnalyzeResultGroup;
-  items: OperationLocator[];
+  itemType: "operation" | "argument";
+  items: MovedItemLocator[];
 };
 
 function computeCDA(item: ORMItem): number | null {
@@ -261,17 +263,28 @@ export class ORMItemProvider
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
+    let itemType: "operation" | "argument" = "operation";
+    for (const item of items) {
+      if (item.type === "operation" || item.type === "argument") {
+        itemType = item.type;
+        break;
+      }
+    }
+
     const data: DragAndDropDataType = {
       resultGroup: this.resultGroup,
+      itemType: itemType,
       items: items
-        // Only allow operations to be dragged
-        .filter((item) => item.type === "operation")
+        // Only allow operations or arguments to be dragged
+        .filter((item) => item.type === itemType)
         .map((item) => ({
           name: item.inner.name,
           parentName: item.parent!.inner.name,
           filePath: item.inner.selection?.filePath,
           fromLine: item.inner.selection?.fromLine,
           fromColumn: item.inner.selection?.fromColumn,
+          toLine: item.inner.selection?.toLine,
+          toColumn: item.inner.selection?.toColumn,
         })),
     };
 
@@ -288,13 +301,20 @@ export class ORMItemProvider
   ): Promise<void> {
     let data = dataTransfer.get("application/vnd.code.tree.entity-operation");
 
-    // Can only drop on entities
-    if (!data || !target || target.type !== "entity") {
+    if (!data || !target) {
       return;
     }
 
     let parsed = JSON.parse(data.value) as DragAndDropDataType;
     if (parsed.items.length === 0) {
+      return;
+    }
+
+    if (parsed.itemType === "operation" && target.type !== "entity") {
+      return;
+    }
+
+    if (parsed.itemType === "argument" && target.type !== "operation") {
       return;
     }
 
@@ -317,7 +337,11 @@ export class ORMItemProvider
 
     let analyzeResult = AnalyzeResult.getInstance();
     let srcGroup = analyzeResult.getGroup(parsed.resultGroup);
-    moveOperations(srcGroup, target.inner as Entity, items);
+    if (parsed.itemType === "operation") {
+      moveOperations(srcGroup, target.inner as Entity, items);
+    } else {
+      moveArguments(srcGroup, target.inner as Operation, items);
+    }
 
     await analyzeResult.saveToStorage();
   }

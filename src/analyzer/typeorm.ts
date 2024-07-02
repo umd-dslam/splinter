@@ -1,5 +1,5 @@
 import vscode, { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, OperationLocator, Entity, Operation } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, Entity, Operation } from "../model";
 import { Analyzer, autoAnnotateCdaTran } from "./base";
 import {
   EntityMessage,

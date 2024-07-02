@@ -238,49 +238,97 @@ export function groupOperationTypes(
   return result;
 }
 
-export type OperationLocator = {
+export type MovedItemLocator = {
   name: string;
   parentName: string;
   filePath: String | undefined;
   fromLine: number | undefined;
+  toLine: number | undefined;
   fromColumn: number | undefined;
+  toColumn: number | undefined;
 };
 
-export function moveOperations(srcGroup: Map<string, Entity>, targetEntity: Entity, operations: OperationLocator[]) {
+export function moveOperations(srcGroup: Map<string, Entity>, targetEntity: Entity, operations: MovedItemLocator[]) {
   const deletedItems: [number, Entity][] = [];
   for (const movedOperation of operations) {
-    // Look up the source entity
-    const srcEntity = srcGroup.get(movedOperation.parentName) || srcGroup.get(`[${movedOperation.parentName}]`);
+    // Find the operation
+    let srcEntity = undefined;
+    let operation = undefined;
+    let operationIndex = undefined;
+    for (const entity of srcGroup.values()) {
+      for (const [index, op] of entity.operations.entries()) {
+        if (op.name === movedOperation.name &&
+          op.selection?.filePath === movedOperation.filePath &&
+          op.selection?.fromLine === movedOperation.fromLine &&
+          op.selection?.fromColumn === movedOperation.fromColumn &&
+          op.selection?.toLine === movedOperation.toLine &&
+          op.selection?.toColumn === movedOperation.toColumn) {
+          srcEntity = entity;
+          operation = op;
+          operationIndex = index;
+          break;
+        }
+      }
+    }
+
+    // Skip if the operation is not found or the source entity is the same as the target entity
     if (!srcEntity || srcEntity === targetEntity) {
       continue;
     }
 
-    // Get the operation
-    let operation = undefined;
-    let operationIndex = undefined;
-    for (const [index, op] of srcEntity.operations.entries()) {
-      if (op.name === movedOperation.name &&
-        op.selection?.filePath === movedOperation.filePath &&
-        op.selection?.fromLine === movedOperation.fromLine &&
-        op.selection?.fromColumn === movedOperation.fromColumn) {
-        operation = op;
-        operationIndex = index;
-        break;
-      }
-    }
-    if (operation === undefined || operationIndex === undefined) {
-      continue;
-    }
-
     // Push the operation to the target entity
-    targetEntity.operations.push(operation);
+    targetEntity.operations.push(operation!);
     // Save the index and source entity for deletion later
-    deletedItems.push([operationIndex, srcEntity]);
+    deletedItems.push([operationIndex!, srcEntity]);
   }
 
   // Sort by index in descending order before deleting to avoid index shift
   for (const [index, entity] of deletedItems.sort(([a], [b]) => b - a)) {
     entity.operations.splice(index, 1);
+  }
+}
+
+export function moveArguments(srcGroup: Map<string, Entity>, targetOperation: Operation, args: MovedItemLocator[]) {
+  const deletedItems: [number, Operation][] = [];
+  for (const movedArg of args) {
+    // Find the argument
+    let srcEntity = undefined;
+    let srcOperation = undefined;
+    let arg = undefined;
+    let argIndex = undefined;
+    for (const entity of srcGroup.values()) {
+      for (const operation of entity.operations) {
+        for (const [index, a] of operation.arguments.entries()) {
+          if (a.name === movedArg.name &&
+            a.selection?.filePath === movedArg.filePath &&
+            a.selection?.fromLine === movedArg.fromLine &&
+            a.selection?.fromColumn === movedArg.fromColumn &&
+            a.selection?.toLine === movedArg.toLine &&
+            a.selection?.toColumn === movedArg.toColumn) {
+            srcEntity = entity;
+            srcOperation = operation;
+            arg = a;
+            argIndex = index;
+            break;
+          }
+        }
+      }
+    }
+
+    // Skip if the argument is not found or the source operation is the same as the target operation
+    if (!srcEntity || srcOperation === targetOperation) {
+      continue;
+    }
+
+    // Push the argument to the target operation
+    targetOperation.arguments.push(arg!);
+    // Save the index and source operation for deletion later
+    deletedItems.push([argIndex!, srcOperation!]);
+  }
+
+  // Sort by index in descending order before deleting to avoid index shift
+  for (const [index, operation] of deletedItems.sort(([a], [b]) => b - a)) {
+    operation.arguments.splice(index, 1);
   }
 }
 

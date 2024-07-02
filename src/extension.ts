@@ -610,6 +610,8 @@ export function activate(context: vscode.ExtensionContext) {
               "filePath": op.selection?.filePath,
               "fromLine": op.selection?.fromLine,
               "fromColumn": op.selection?.fromColumn,
+              "toLine": op.selection?.toLine,
+              "toColumn": op.selection?.toColumn,
             },
           };
         });
