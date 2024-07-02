@@ -165,7 +165,35 @@ export class ORMItemProvider
             };
           })
           .filter(indexedOp => curEntityPassedFilters || operationIncludes(indexedOp["operation"], this.filters))
-          .sort((a, b) => (a["operation"].name < b["operation"].name ? -1 : 1))
+          .sort((a, b) => {
+            const a_op = a["operation"];
+            const b_op = b["operation"];
+            if (a_op.selection === undefined) {
+              return -1;
+            }
+            if (b_op.selection === undefined) {
+              return 1;
+            }
+            if (a_op.selection.filePath < b_op.selection.filePath) {
+              return -1;
+            }
+            if (a_op.selection.filePath > b_op.selection.filePath) {
+              return 1;
+            }
+            if (a_op.selection.fromLine < b_op.selection.fromLine) {
+              return -1;
+            }
+            if (a_op.selection.fromLine > b_op.selection.fromLine) {
+              return 1;
+            }
+            if (a_op.selection.fromColumn < b_op.selection.fromColumn) {
+              return -1;
+            }
+            if (a_op.selection.fromColumn > b_op.selection.fromColumn) {
+              return 1;
+            }
+            return 0;
+          })
           .map(indexedOp => ({
             type: "operation",
             inner: indexedOp["operation"],
