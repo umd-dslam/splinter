@@ -144,10 +144,12 @@ export class AnalyzeResult {
     if (!fs.existsSync(this.resultPath)) {
       return false;
     }
-    const resultPath = vscode.Uri.file(this.resultPath);
+    const currentResultPath = this.resultPath;
+    const resultPath = vscode.Uri.file(currentResultPath);
     const data = await vscode.workspace.fs.readFile(resultPath);
     const newResult: AnalyzeResult = JSON.parse(data.toString(), reviver);
     Object.assign(this, newResult);
+    this.setResultPath(currentResultPath);
     this.refreshFn();
     return true;
   }
