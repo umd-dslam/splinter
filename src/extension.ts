@@ -293,6 +293,7 @@ export function activate(context: vscode.ExtensionContext) {
           AnalyzeResultGroup.unknown
         );
       }
+      analyzeResult.refreshViews();
     }
   );
 
@@ -309,6 +310,7 @@ export function activate(context: vscode.ExtensionContext) {
           AnalyzeResultGroup.recognized
         );
       }
+      analyzeResult.refreshViews();
     }
   );
 
@@ -356,6 +358,44 @@ export function activate(context: vscode.ExtensionContext) {
         isCustom: true,
       });
 
+      analyzeResult.saveToStorage();
+    }
+  );
+
+  vscode.commands.registerCommand(
+    "splinter.operation.moveToUnknown",
+    (item: ORMItem, items: ORMItem[]) => {
+      if (!items) {
+        items = [item];
+      }
+      // export function moveOperations(srcGroup: Map<string, Entity>, targetEntity: Entity, operations: MovedItemLocator[]) {
+      const srcGroup = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
+      const locators = items.map((item) => {
+        return {
+          "name": item.inner.name,
+          "parentName": item.parent!.inner.name,
+          "filePath": item.inner.selection?.filePath,
+          "fromLine": item.inner.selection?.fromLine,
+          "fromColumn": item.inner.selection?.fromColumn,
+          "toLine": item.inner.selection?.toLine,
+          "toColumn": item.inner.selection?.toColumn,
+        };
+      });
+      const dstGroup = analyzeResult.getGroup(AnalyzeResultGroup.unknown);
+      let target: Entity;
+      if (dstGroup.has("[moved]")) {
+        target = dstGroup.get("[moved]")!;
+      } else {
+        target = {
+          name: "[moved]",
+          operations: [],
+          note: "",
+          isCustom: true,
+        };
+        dstGroup.set("[moved]", target);
+      }
+      moveOperations(srcGroup, target, locators);
+      analyzeResult.refreshViews();
       analyzeResult.saveToStorage();
     }
   );

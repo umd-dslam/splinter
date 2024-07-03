@@ -132,9 +132,14 @@
           "group": "2_edit@2"
         },
         {
-          "command": "splinter.argument.add",
+          "command": "splinter.operation.moveToUnknown",
           "when": "view == recognized && viewItem =~ /operation/",
           "group": "2_edit@1"
+        },
+        {
+          "command": "splinter.argument.add",
+          "when": "view == recognized && viewItem =~ /operation/",
+          "group": "2_edit@2"
         },
         {
           "command": "splinter.item.remove",
@@ -235,6 +240,10 @@
       {
         "command": "splinter.operation.add",
         "title": "Add Operation"
+      },
+      {
+        "command": "splinter.operation.moveToUnknown",
+        "title": "Move to Unknown"
       },
       {
         "command": "splinter.argument.add",
