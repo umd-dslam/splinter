@@ -159,42 +159,52 @@
       ],
       "view/title": [
         {
+          "command": "splinter.showAsFlatList",
+          "when": "view == recognized && !splinter.isFlat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "splinter.showAsTree",
+          "when": "view == recognized && splinter.isFlat",
+          "group": "navigation@1"
+        },
+        {
           "command": "splinter.entity.add",
           "when": "view == recognized",
-          "group": "navigation@1"
+          "group": "navigation@2"
         },
         {
           "command": "splinter.filter.createRecognized",
           "when": "view == recognized && !splinter.hasFilterInRecognized",
-          "group": "navigation@2"
+          "group": "navigation@3"
         },
         {
           "command": "splinter.filter.createUnknown",
           "when": "view == unknown && !splinter.hasFilterInUnknown",
-          "group": "navigation@2"
+          "group": "navigation@3"
         },
         {
           "command": "splinter.filter.clearRecognized",
           "when": "view == recognized && splinter.hasFilterInRecognized",
-          "group": "navigation@2"
+          "group": "navigation@3"
         },
         {
           "command": "splinter.filter.clearUnknown",
           "when": "view == unknown && splinter.hasFilterInUnknown",
-          "group": "navigation@2"
+          "group": "navigation@3"
         }
       ]
     },
     "commands": [
       {
-        "command": "splinter.expandAll",
-        "title": "Expand All",
-        "icon": "$(expand-all)"
+        "command": "splinter.showAsFlatList",
+        "title": "Show as flat List",
+        "icon": "$(list-flat)"
       },
       {
-        "command": "splinter.collapseAll",
-        "title": "Collapse All",
-        "icon": "$(collapse-all)"
+        "command": "splinter.showAsTree",
+        "title": "Show as tree",
+        "icon": "$(list-tree)"
       },
       {
         "command": "splinter.item.show",

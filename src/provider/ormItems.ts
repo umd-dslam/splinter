@@ -55,6 +55,7 @@ export class ORMItemProvider
   vscode.TreeDragAndDropController<ORMItem> {
 
   private filters: string[] = [];
+  private isFlat: boolean = false;
 
   constructor(
     private workspacePath: vscode.Uri,
@@ -192,7 +193,6 @@ export class ORMItemProvider
     }
 
     var entities = AnalyzeResult.getInstance().getGroup(this.resultGroup);
-
     if (this.filters.length > 0) {
       entities = new Map(
         Array.from(entities.entries()).filter(
@@ -203,14 +203,30 @@ export class ORMItemProvider
       );
     }
 
-    return Array.from(entities.values())
-      .sort((a, b) => (a.name < b.name ? -1 : 1))
-      .map((entity) => ({
-        type: "entity",
-        inner: entity,
-        idInParent: -1,
-        resultGroup: this.resultGroup,
-      }));
+    if (this.isFlat) {
+      return Array.from(entities.values())
+        .sort((a, b) => (a.name < b.name ? -1 : 1))
+        .flatMap((entity) =>
+          entity.operations
+            .sort((a, b) => compareSelection(a.selection, b.selection))
+            .map((operation, index) => ({
+              type: "operation",
+              inner: operation,
+              parent: undefined,
+              idInParent: index,
+              resultGroup: this.resultGroup,
+            }))
+        );
+    } else {
+      return Array.from(entities.values())
+        .sort((a, b) => (a.name < b.name ? -1 : 1))
+        .map((entity) => ({
+          type: "entity",
+          inner: entity,
+          idInParent: -1,
+          resultGroup: this.resultGroup,
+        }));
+    }
   }
 
   getParent(element: ORMItem): vscode.ProviderResult<ORMItem> {
@@ -256,7 +272,7 @@ export class ORMItemProvider
         .filter((item) => item.type === itemType)
         .map((item) => ({
           name: item.inner.name,
-          parentName: item.parent!.inner.name,
+          parentName: item.parent?.inner.name || "<root>",
           filePath: item.inner.selection?.filePath,
           fromLine: item.inner.selection?.fromLine,
           fromColumn: item.inner.selection?.fromColumn,
@@ -333,5 +349,9 @@ export class ORMItemProvider
 
   clearFilters(): void {
     this.filters = [];
+  }
+
+  setIsFlat(isFlat: boolean): void {
+    this.isFlat = isFlat;
   }
 }

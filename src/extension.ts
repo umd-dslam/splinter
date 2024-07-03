@@ -226,6 +226,18 @@ export function activate(context: vscode.ExtensionContext) {
     analyzeResult.refreshViews();
   });
 
+  vscode.commands.registerCommand("splinter.showAsFlatList", () => {
+    recognizedProvider.setIsFlat(true);
+    recognizedProvider.refresh();
+    vscode.commands.executeCommand('setContext', 'splinter.isFlat', true);
+  });
+
+  vscode.commands.registerCommand("splinter.showAsTree", () => {
+    recognizedProvider.setIsFlat(false);
+    recognizedProvider.refresh();
+    vscode.commands.executeCommand('setContext', 'splinter.isFlat', false);
+  });
+
   vscode.commands.registerCommand("splinter.entity.add", async () => {
     const name = await vscode.window.showInputBox({
       placeHolder: "Enter the name of the entity to add",

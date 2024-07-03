@@ -271,8 +271,8 @@ export function groupOperationTypes(
 
 export type MovedItemLocator = {
   name: string;
-  parentName: string;
-  filePath: String | undefined;
+  parentName: string; // this field is for display only and not used for locating the item
+  filePath: string | undefined;
   fromLine: number | undefined;
   toLine: number | undefined;
   fromColumn: number | undefined;
