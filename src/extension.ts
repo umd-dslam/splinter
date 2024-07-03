@@ -385,7 +385,7 @@ export function activate(context: vscode.ExtensionContext) {
       const locators = items.map((item) => {
         return {
           "name": item.inner.name,
-          "parentName": item.parent!.inner.name,
+          "parentName": item.parent?.inner.name || "<root>",
           "filePath": item.inner.selection?.filePath,
           "fromLine": item.inner.selection?.fromLine,
           "fromColumn": item.inner.selection?.fromColumn,
@@ -459,17 +459,22 @@ export function activate(context: vscode.ExtensionContext) {
         break;
       }
       case "operation": {
-        const entity = entities.get(item.parent!.inner.name);
-        if (entity) {
-          entity.operations.splice(item.idInParent, 1);
+        if (item.parent) {
+          const entity = entities.get(item.parent.inner.name);
+          if (entity) {
+            entity.operations.splice(item.idInParent, 1);
+          }
         }
         break;
       }
       case "argument": {
-        const entity = entities.get(item.parent!.parent!.inner.name);
-        if (entity) {
-          const operation = entity.operations[item.parent!.idInParent];
-          operation.arguments.splice(item.idInParent, 1);
+        const opItem = item.parent!;
+        if (opItem.parent) {
+          const entity = entities.get(opItem.parent.inner.name);
+          if (entity) {
+            const operation = entity.operations[opItem.idInParent];
+            operation.arguments.splice(item.idInParent, 1);
+          }
         }
         break;
       }
