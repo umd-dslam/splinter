@@ -90,6 +90,34 @@ export type Selection = {
   toColumn: number;
 };
 
+export function compareSelection(a: Selection | undefined, b: Selection | undefined): number {
+  if (a === undefined) {
+    return -1;
+  }
+  if (b === undefined) {
+    return 1;
+  }
+  if (a.filePath < b.filePath) {
+    return -1;
+  }
+  if (a.filePath > b.filePath) {
+    return 1;
+  }
+  if (a.fromLine < b.fromLine) {
+    return -1;
+  }
+  if (a.fromLine > b.fromLine) {
+    return 1;
+  }
+  if (a.fromColumn < b.fromColumn) {
+    return -1;
+  }
+  if (a.fromColumn > b.fromColumn) {
+    return 1;
+  }
+  return 0;
+}
+
 export enum AnalyzeResultGroup {
   recognized = "Recognized",
   unknown = "Unknown",
