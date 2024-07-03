@@ -157,26 +157,30 @@ export class ORMItemProvider
   }
 
   async getChildren(item?: ORMItem): Promise<ORMItem[]> {
+    const getFilteredOperations = (entity: Entity) => {
+      let curEntityPassedFilters = entityIncludes(entity, this.filters);
+      let items: ORMItem[] = entity.operations
+        .map((operation, index) => {
+          return {
+            "operation": operation,
+            "index": index
+          };
+        })
+        .filter(indexedOp => curEntityPassedFilters || operationIncludes(indexedOp["operation"], this.filters))
+        .sort((a, b) => compareSelection(a["operation"].selection, b["operation"].selection))
+        .map(indexedOp => ({
+          type: "operation",
+          inner: indexedOp["operation"],
+          parent: item,
+          idInParent: indexedOp["index"],
+          resultGroup: this.resultGroup,
+        }));
+      return items
+    }
+
     if (item) {
       if (item.type === "entity") {
-        let inner = item.inner as Entity;
-        let curEntityPassedFilters = entityIncludes(inner, this.filters);
-        return inner.operations
-          .map((operation, index) => {
-            return {
-              "operation": operation,
-              "index": index
-            };
-          })
-          .filter(indexedOp => curEntityPassedFilters || operationIncludes(indexedOp["operation"], this.filters))
-          .sort((a, b) => compareSelection(a["operation"].selection, b["operation"].selection))
-          .map(indexedOp => ({
-            type: "operation",
-            inner: indexedOp["operation"],
-            parent: item,
-            idInParent: indexedOp["index"],
-            resultGroup: this.resultGroup,
-          }));
+        return getFilteredOperations(item.inner as Entity);
       } else if (item.type === "operation") {
         let inner = item.inner as Operation;
         return inner.arguments
@@ -206,17 +210,7 @@ export class ORMItemProvider
     if (this.isFlat) {
       return Array.from(entities.values())
         .sort((a, b) => (a.name < b.name ? -1 : 1))
-        .flatMap((entity) =>
-          entity.operations
-            .sort((a, b) => compareSelection(a.selection, b.selection))
-            .map((operation, index) => ({
-              type: "operation",
-              inner: operation,
-              parent: undefined,
-              idInParent: index,
-              resultGroup: this.resultGroup,
-            }))
-        );
+        .flatMap((entity) => getFilteredOperations(entity));
     } else {
       return Array.from(entities.values())
         .sort((a, b) => (a.name < b.name ? -1 : 1))
