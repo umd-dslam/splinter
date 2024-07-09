@@ -197,6 +197,11 @@
     },
     "commands": [
       {
+        "command": "splinter.recordOpToTxn",
+        "title": "Record operation to transaction",
+        "category": "Splinter"
+      },
+      {
         "command": "splinter.showAsFlatList",
         "title": "Show as flat List",
         "icon": "$(list-flat)"
@@ -325,6 +330,11 @@
         "command": "splinter.filter.clearRecognized",
         "key": "ctrl+alt+c",
         "when": "activeViewlet == 'workbench.view.extension.splinter'"
+      },
+      {
+        "command": "splinter.recordOpToTxn",
+        "key": "ctrl+alt+t",
+        "when": "true"
       }
     ]
   },

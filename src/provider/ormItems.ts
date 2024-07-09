@@ -149,6 +149,7 @@ export class ORMItemProvider
               item.inner.selection.toColumn
             )
           ),
+          item.inner
         ],
       };
     }

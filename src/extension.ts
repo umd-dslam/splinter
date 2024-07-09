@@ -4,12 +4,26 @@ import glob from 'glob';
 import { ORMItem, ORMItemProvider } from "./provider/ormItems";
 import { TypeORMAnalyzer } from "./analyzer/typeorm";
 import { DjangoAnalyzer } from "./analyzer/django";
-import { AnalyzeResult, AnalyzeResultGroup, Operation, appendNote, moveOperations } from "./model";
+import { AnalyzeResult, AnalyzeResultGroup, Argument, Operation, Selection, appendNote, moveOperations } from "./model";
 import { Info, InfoProvider } from "./provider/info";
 import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
 import { Entity, getCurrentSelection, TAGS } from "./model";
 import pluralize from "pluralize";
+
+let TXN_TO_OPS: {
+  txn_id: {
+    [id: number]: Operation
+  },
+  ops: {
+    [id: number]: Selection[]
+  }
+} = {
+  txn_id: {},
+  ops: {}
+};
+
+let CURRENT_TXN: number = -1;
 
 // Sets the git hash and repository URL in the result
 async function setRepositoryInfo(workspacePath: vscode.Uri) {
@@ -513,9 +527,17 @@ export function activate(context: vscode.ExtensionContext) {
     analyzeResult.saveToStorage();
   });
 
+  const txnToOpsPath = vscode.Uri.joinPath(
+    vscodePath,
+    "txn-to-ops.json"
+  )
+  if (fs.existsSync(txnToOpsPath.fsPath)) {
+    TXN_TO_OPS = JSON.parse(fs.readFileSync(txnToOpsPath.fsPath).toString());
+  }
+
   vscode.commands.registerCommand(
     "splinter.item.show",
-    (loc: vscode.Location) => {
+    (loc: vscode.Location, item: Operation | Argument | Entity) => {
       vscode.workspace.openTextDocument(loc.uri).then((doc) => {
         vscode.window.showTextDocument(doc).then((editor) => {
           editor.revealRange(loc.range, vscode.TextEditorRevealType.InCenter);
@@ -525,8 +547,62 @@ export function activate(context: vscode.ExtensionContext) {
           );
         });
       });
+      if ('type' in item && item.type === "transaction") {
+        CURRENT_TXN = -1;
+        for (let [id, txn] of Object.entries(TXN_TO_OPS.txn_id)) {
+          const sel1 = txn.selection!;
+          const sel2 = item.selection!;
+          if (sel1.filePath === sel2.filePath &&
+            sel1.fromLine === sel2.fromLine &&
+            sel1.fromColumn === sel2.fromColumn &&
+            sel1.toLine === sel2.toLine &&
+            sel1.toColumn === sel2.toColumn) {
+            CURRENT_TXN = parseInt(id);
+            break;
+          }
+        }
+        if (CURRENT_TXN < 0) {
+          CURRENT_TXN = Object.keys(TXN_TO_OPS.txn_id).length;
+          TXN_TO_OPS.txn_id[CURRENT_TXN] = item;
+          TXN_TO_OPS.ops[CURRENT_TXN] = [];
+        }
+        console.log(TXN_TO_OPS);
+        outputChannel.appendLine(
+          `Current transaction (${CURRENT_TXN}): ${item.selection!.filePath}:${item.selection!.fromLine}`);
+      }
     }
   );
+
+  vscode.commands.registerCommand(
+    "splinter.recordOpToTxn",
+    async () => {
+      if (CURRENT_TXN < 0) {
+        vscode.window.showErrorMessage("No transaction selected.");
+        return;
+      }
+      const editor = vscode.window.activeTextEditor;
+      if (editor === undefined) {
+        vscode.window.showErrorMessage("No active editor.");
+        return;
+      }
+
+      let sel: Selection = {
+        filePath: editor.document.uri.fsPath,
+        fromLine: editor.selection.start.line,
+        fromColumn: editor.selection.start.character,
+        toLine: editor.selection.end.line,
+        toColumn: editor.selection.end.character,
+      }
+      TXN_TO_OPS.ops[CURRENT_TXN].push(sel);
+
+      outputChannel.appendLine(`Added to txn ${CURRENT_TXN}: ${sel.filePath}:${sel.fromLine}`);
+
+      await vscode.workspace.fs.writeFile(
+        txnToOpsPath,
+        Buffer.from(JSON.stringify(TXN_TO_OPS))
+      );
+    }
+  )
 
   vscode.commands.registerCommand(
     "splinter.item.editNote",
