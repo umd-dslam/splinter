@@ -226,7 +226,8 @@ export class DjangoAnalyzer implements Analyzer {
                             && operation.selection.toColumn === op.selection?.toColumn;
                         if (sameOperation && operation.arguments.length > 0) {
                             if (op.arguments.length !== operation.arguments.length) {
-                                console.log(`Update arguments for recognized ${op.name} on ${operation.selection.filePath}:${operation.selection.fromLine}`);
+                                this.outputChannel.appendLine(
+                                    `Update arguments for recognized ${op.name} on ${operation.selection.filePath}:${operation.selection.fromLine}`);
                             }
                             op.arguments = operation.arguments;
                         }
@@ -237,7 +238,8 @@ export class DjangoAnalyzer implements Analyzer {
                     for (const op of ent.operations) {
                         if (operation.selection === op.selection && operation.arguments.length > 0) {
                             if (op.arguments.length !== operation.arguments.length) {
-                                console.log(`Update arguments for unknown ${op.name} on ${operation.selection.filePath}:${operation.selection.fromLine}`);
+                                this.outputChannel.appendLine(
+                                    `Update arguments for unknown ${op.name} on ${operation.selection.filePath}:${operation.selection.fromLine}`);
                             }
                             op.arguments = operation.arguments;
                         }

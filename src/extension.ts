@@ -222,17 +222,17 @@ export function activate(context: vscode.ExtensionContext) {
       {
         location: vscode.ProgressLocation.Notification,
         cancellable: true,
-        title: `Analyzing ${analyzer.getName()} project`,
+        title: `Analyzing ${analyzer!.getName()} project`,
       },
       async (progress, cancel) => {
 
         // Set up the cancellation
         cancel.onCancellationRequested(() => {
-          analyzer.cancel();
+          analyzer!.cancel();
         });
 
         // Do the analysis
-        let ok = await analyzer.analyze((msg) => progress.report({ message: msg }));
+        let ok = await analyzer!.analyze((msg) => progress.report({ message: msg }));
         if (ok) {
           // Save the result
           await analyzeResult.saveToStorage();
