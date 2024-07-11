@@ -427,8 +427,7 @@ export class DjangoAnalyzer implements Analyzer {
         const entities = this.result.getGroup(AnalyzeResultGroup.recognized);
         for (const entity of entities.values()) {
             for (const operation of entity.operations) {
-                if (operation.type === "read"
-                    && (isInterestedOp(operation))
+                if (isInterestedOp(operation)
                     && operation.arguments.length === 0) {
                     if (!operation.note.includes(CDA_TRAN)) {
                         operation.note = appendNote(operation.note, `${CDA_TRAN}(a)`);

@@ -1,5 +1,5 @@
 import { OutputChannel } from "vscode";
-import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, appendNote, Entity, Operation } from "../model";
+import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, appendNote, Entity, Operation, FULL_SCAN } from "../model";
 
 export interface Analyzer {
   analyze: (onMessage: (msg: string) => void) => Promise<boolean>;
@@ -113,7 +113,7 @@ export function autoAnnotateCdaTran(
       }
     }
     for (const op of remainingOperations) {
-      if (!op.note.includes(CDA_TRAN)) {
+      if (!op.note.includes(CDA_TRAN) && !op.note.includes(FULL_SCAN)) {
         op.note = appendNote(op.note, `${CDA_TRAN}(a)`);
       }
     }
