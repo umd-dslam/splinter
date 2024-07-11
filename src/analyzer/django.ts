@@ -400,9 +400,20 @@ export class DjangoAnalyzer implements Analyzer {
     }
 
     autoAnnotateCdaTran() {
-        function getCda(operation: Operation): string[] {
+        function isInterestedOp(op: Operation) {
+            return op.name.endsWith("get") ||
+                op.name.endsWith("filter") ||
+                op.name.endsWith("get_or_create") ||
+                op.name.endsWith("exclude") ||
+                op.name.endsWith("create_or_update");
+        }
+
+        function getCda(op: Operation): string[] | undefined {
+            if (!isInterestedOp(op)) {
+                return undefined;
+            }
             const cda: string[] = [];
-            for (const arg of operation.arguments) {
+            for (const arg of op.arguments) {
                 const parts = arg.name.split("__");
                 if (0 < parts.length && parts.length <= 2) {
                     cda.push(parts[0]);
@@ -417,7 +428,7 @@ export class DjangoAnalyzer implements Analyzer {
         for (const entity of entities.values()) {
             for (const operation of entity.operations) {
                 if (operation.type === "read"
-                    && (operation.name.endsWith("get") || operation.name.endsWith("filter"))
+                    && (isInterestedOp(operation))
                     && operation.arguments.length === 0) {
                     if (!operation.note.includes(CDA_TRAN)) {
                         operation.note = appendNote(operation.note, `${CDA_TRAN}(a)`);

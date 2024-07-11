@@ -14,23 +14,29 @@ export interface Analyzer {
 
 export function autoAnnotateCdaTran(
   result: AnalyzeResult,
-  getCda: (operation: Operation) => string[],
+  getCda: (operation: Operation) => string[] | undefined,
   outputChannel: OutputChannel
 ) {
   const entities = result.getGroup(AnalyzeResultGroup.recognized);
+  const remainingOperations: Operation[] = [];
 
   for (const entity of entities.values()) {
     const cdas: Set<string>[] = [];
     const cdaIndex: Map<string, Operation[]> = new Map();
     for (const op of entity.operations) {
-      const cda: Set<string> = new Set(getCda(op));
-      if (cda.size > 0) {
-        const cdaKey = Array.from(cda).sort().join(",");
-        if (!cdaIndex.get(cdaKey)) {
-          cdas.push(cda);
-          cdaIndex.set(cdaKey, []);
+      const cda = getCda(op);
+      if (cda !== undefined) {
+        const cda_set: Set<string> = new Set(getCda(op));
+        if (cda_set.size > 0) {
+          const cdaKey = Array.from(cda_set).sort().join(",");
+          if (!cdaIndex.get(cdaKey)) {
+            cdas.push(cda_set);
+            cdaIndex.set(cdaKey, []);
+          }
+          cdaIndex.get(cdaKey)!.push(op);
+        } else {
+          remainingOperations.push(op);
         }
-        cdaIndex.get(cdaKey)!.push(op);
       }
     }
 
@@ -101,11 +107,14 @@ export function autoAnnotateCdaTran(
       }
       cdaIndex.delete(cdaKey);
     }
-    for (const remainingOperations of cdaIndex.values()) {
-      for (const operation of remainingOperations) {
-        if (!operation.note.includes(CDA_TRAN)) {
-          operation.note = appendNote(operation.note, `${CDA_TRAN}(a)`);
-        }
+    for (const ops of cdaIndex.values()) {
+      for (const op of ops) {
+        remainingOperations.push(op);
+      }
+    }
+    for (const op of remainingOperations) {
+      if (!op.note.includes(CDA_TRAN)) {
+        op.note = appendNote(op.note, `${CDA_TRAN}(a)`);
       }
     }
     const bestCda = bestPath[bestPath.length - 1];
