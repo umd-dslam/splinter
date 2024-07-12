@@ -414,8 +414,11 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.registerCommand(
     "splinter.argument.add",
-    async (item: ORMItem) => {
-      if (item.type !== "operation") {
+    async (item: ORMItem, items: ORMItem[]) => {
+      if (!items) {
+        items = [item];
+      }
+      if (items.some((i) => i.type !== "operation")) {
         return;
       }
       const name = await vscode.window.showInputBox({
@@ -432,14 +435,16 @@ export function activate(context: vscode.ExtensionContext) {
         placeHolder: "Set the current selection for the argument?",
       });
 
-      const operation = item.inner as Operation;
-      operation.arguments.push({
-        selection:
-          setSelection === "yes" ? getCurrentSelection(workspacePath) : undefined,
-        name,
-        note: "",
-        isCustom: true,
-      });
+      for (const i of items) {
+        const operation = i.inner as Operation;
+        operation.arguments.push({
+          selection:
+            setSelection === "yes" ? getCurrentSelection(workspacePath) : undefined,
+          name,
+          note: "",
+          isCustom: true,
+        });
+      }
 
       analyzeResult.saveToStorage();
     }
