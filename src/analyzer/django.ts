@@ -405,7 +405,7 @@ export class DjangoAnalyzer implements Analyzer {
                 op.name.endsWith("filter") ||
                 op.name.endsWith("get_or_create") ||
                 op.name.endsWith("exclude") ||
-                op.name.endsWith("create_or_update");
+                op.name.endsWith("update_or_create");
         }
 
         function getCda(op: Operation): string[] | undefined {

@@ -385,28 +385,9 @@ export const TAGS = [
   PHANTOM,
 ];
 
-const OPERATION_ONLY_TAGS = [
-  CDA_DEP,
-  ONESHOT_EASY,
-  ONESHOT_HARD,
-  MSHOT,
-  NON_EQ,
-  NON_TRIVIAL,
-  PHANTOM,
-];
-
 export function countTags(entities: Entity[]): Map<string, number> {
   const result = new Map<string, number>();
   for (const entity of entities) {
-    for (const tag of TAGS) {
-      if (OPERATION_ONLY_TAGS.includes(tag)) {
-        continue;
-      }
-      if (entity.note.includes(tag)) {
-        result.set(tag, (result.get(tag) || 0) + 1);
-      }
-    }
-
     for (const operation of entity.operations) {
       for (const tag of TAGS) {
         if (operation.note.includes(tag)) {

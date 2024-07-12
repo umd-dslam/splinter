@@ -1,6 +1,6 @@
 import vscode, { OutputChannel } from "vscode";
 import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, Entity, Operation } from "../model";
-import { Analyzer, autoAnnotateCdaTran } from "./base";
+import { Analyzer, autoAnnotateCdaTran, updateEntityAnnotation } from "./base";
 import {
   EntityMessage,
   MethodMessage,
@@ -285,10 +285,13 @@ export class TypeORMAnalyzer implements Analyzer {
   autoAnnotate(tag: string) {
     switch (tag) {
       case CDA_TRAN:
-        function getCda(operation: Operation): string[] {
+        function getCda(op: Operation): string[] | undefined {
           const cda: string[] = [];
-          for (const arg of operation.arguments) {
+          for (const arg of op.arguments) {
             cda.push(arg.name);
+          }
+          if (cda.length === 0) {
+            return undefined;
           }
           return cda;
         }
@@ -297,6 +300,7 @@ export class TypeORMAnalyzer implements Analyzer {
       default:
         vscode.window.showErrorMessage(`Unsupported auto-annotate tag: ${tag}`);
     }
+    updateEntityAnnotation(this.result);
   }
 
   recognizeUnknownAggressively(): [Entity, [Entity, Operation][]][] {
