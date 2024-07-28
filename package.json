@@ -197,6 +197,11 @@
     },
     "commands": [
       {
+        "command": "splinter.reverseSearchOp",
+        "category": "Splinter",
+        "title": "Reverse search operation from current selection"
+      },
+      {
         "command": "splinter.recordOpToTxn",
         "title": "Record operation to transaction",
         "category": "Splinter"
@@ -334,6 +339,11 @@
       {
         "command": "splinter.recordOpToTxn",
         "key": "ctrl+alt+t",
+        "when": "true"
+      },
+      {
+        "command": "splinter.reverseSearchOp",
+        "key": "ctrl+alt+s",
         "when": "true"
       }
     ]

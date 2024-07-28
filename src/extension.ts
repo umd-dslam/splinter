@@ -10,6 +10,7 @@ import { Analyzer } from "./analyzer/base";
 import { GitExtension } from "./@types/git";
 import { Entity, getCurrentSelection, TAGS } from "./model";
 import pluralize from "pluralize";
+import { relative } from "path";
 
 let TXN_TO_OPS: {
   txn_id: {
@@ -601,6 +602,41 @@ export function activate(context: vscode.ExtensionContext) {
         txnToOpsPath,
         Buffer.from(JSON.stringify(TXN_TO_OPS))
       );
+    }
+  )
+
+  vscode.commands.registerCommand(
+    "splinter.reverseSearchOp",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor === undefined) {
+        vscode.window.showErrorMessage("No active editor.");
+        return;
+      }
+
+      let sel: Selection = {
+        filePath: relative(workspacePath.fsPath, editor.document.uri.fsPath),
+        fromLine: editor.selection.start.line,
+        fromColumn: editor.selection.start.character,
+        toLine: editor.selection.end.line,
+        toColumn: editor.selection.end.character,
+      }
+
+      const group = analyzeResult.getGroup(AnalyzeResultGroup.recognized);
+      let found = false;
+      for (let entity of group.values()) {
+        for (let op of entity.operations) {
+          if (sel.filePath === op.selection!.filePath &&
+            sel.fromLine <= op.selection!.toLine &&
+            sel.toLine >= op.selection!.fromLine) {
+            outputChannel.appendLine(`[${entity.name}] ${op.name}. Note: ${op.note}`);
+            found = true;
+          }
+        }
+      }
+      if (!found) {
+        outputChannel.appendLine(`Not found for selection: ${sel.filePath}:${sel.fromLine}-${sel.toLine}`);
+      }
     }
   )
 
