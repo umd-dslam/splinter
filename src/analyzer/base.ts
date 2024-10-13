@@ -73,13 +73,17 @@ export function autoAnnotateCdaTran(
       }
     }
 
+    // Start from the longest CDAs
     cdas.sort((a, b) => b.size - a.size);
+    // Add all CDAs to the tree such that the parent of a CDA is the smallest superset 
+    // of the CDA
     for (const cda of cdas) {
       addChild(graph.children, cda);
     }
 
     function findBestPath(node: GraphNode): [string[], number] {
       let path: string[] = [];
+      // value counts the number of operations covered by the path
       let value = 0;
       for (const child of node.children) {
         const [cpath, cvalue] = findBestPath(child);
@@ -96,16 +100,24 @@ export function autoAnnotateCdaTran(
       return [path, value];
     }
 
+    // Find the path that covers the most operations
     const [bestPath] = findBestPath(graph);
-    for (const cdaKey of bestPath) {
-      if (cdaIndex.has(cdaKey)) {
-        for (const operation of cdaIndex.get(cdaKey)!) {
-          if (operation.note.includes(CDA_TRAN)) {
-            outputChannel.appendLine(`Double-check tag "${CDA_TRAN}" that was manually added for ${operation.name}`);
+    if (bestPath.length > 0) {
+      // The longest CDA is the last element in the path
+      const maxLen = bestPath[bestPath.length - 1].split(",").length;
+      for (const cdaKey of bestPath) {
+        const len = cdaKey.split(",").length;
+        if (cdaIndex.has(cdaKey)) {
+          // These operations have matching CDAs
+          for (const operation of cdaIndex.get(cdaKey)!) {
+            if (operation.note.includes(CDA_TRAN)) {
+              outputChannel.appendLine(`Double-check tag "${CDA_TRAN}" that was manually added for ${operation.name}`);
+            }
+            operation.note = appendNote(operation.note, `cda[${len}/${maxLen}](a)`);
           }
         }
+        cdaIndex.delete(cdaKey);
       }
-      cdaIndex.delete(cdaKey);
     }
     for (const ops of cdaIndex.values()) {
       for (const op of ops) {
