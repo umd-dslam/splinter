@@ -10,8 +10,8 @@ This extension analyzes and displays the ORM operations in the code.
 
 Supported ORMs:
 
-- TypeORM
-- Django ORM
+- [TypeORM](https://anonymous.4open.science/r/splinter-eslint)
+- [Django ORM](https://anonymous.4open.science/r/splinter-mypy)
 
 <!-- ## Requirements
 
