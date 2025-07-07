@@ -350,8 +350,9 @@
   },
   "dependencies": {
     "@ctring/splinter-eslint": "^1.0.8",
-    "pluralize": "^8.0.0",
+    "@vscode/vsce": "^3.6.0",
     "glob": "^8.1.0",
+    "pluralize": "^8.0.0",
     "tmp": "^0.2.3"
   },
   "extensionDependencies": [
