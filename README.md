@@ -1,10 +1,10 @@
 ## Splinter
 
-Splinter is a VS Code extension that finds and categorizes ORM operations in a codebase, following the taxonomy in the paper “Are Database System Researchers Making Correct Assumptions about Transaction Workloads?” (`https://dl.acm.org/doi/10.1145/3725268`).
+Splinter is a VS Code extension that finds and categorizes ORM operations in a codebase, following the taxonomy in the paper [Are Database System Researchers Making Correct Assumptions about Transaction Workloads?](https://dl.acm.org/doi/10.1145/3725268).
 
 - **Supported ORMs**:
-  - **TypeORM**: analyzer powered by `@ctring/splinter-eslint` (`https://github.com/umd-dslam/splinter-eslint`)
-  - **Django ORM**: analyzer powered by `splinter-mypy` (`https://github.com/umd-dslam/splinter-mypy`)
+  - **TypeORM**: analyzer powered by `@ctring/splinter-eslint` (https://github.com/umd-dslam/splinter-eslint)
+  - **Django ORM**: analyzer powered by `splinter-mypy` (https://github.com/umd-dslam/splinter-mypy)
 - **Views**: The “Splinter” activity bar contains three views: `Info`, `Recognized`, and `Unknown`.
 - **Storage**: Results are saved to `.vscode/<analyzer>-results.json` in your workspace and automatically reloaded on open.
 
