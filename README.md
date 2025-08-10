@@ -2,7 +2,7 @@
 
 This extension finds and categorizes the ORM operations in a codebase as described in the paper [Are Database System Researchers Making Correct Assumptions about Transaction Workloads?](https://dl.acm.org/doi/10.1145/3725268).
 
-It currently supports the following ORMs:
+This repository contains the frontend of the tool. The backend is language dependent and implemented separately. It currently supports the following ORMs:
 
 - [TypeORM](https://github.com/umd-dslam/splinter-eslint)
 - [Django ORM](https://github.com/umd-dslam/splinter-mypy)

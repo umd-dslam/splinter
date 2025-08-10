@@ -1,14 +1,91 @@
 import { OutputChannel } from "vscode";
 import { AnalyzeResult, AnalyzeResultGroup, CDA_TRAN, NON_EQ, NON_TRIVIAL, appendNote, Entity, Operation, FULL_SCAN } from "../model";
 
+/**
+ * Contract for language/ORM analyzers.
+ *
+ * Implementations are responsible for scanning a workspace, discovering ORM
+ * entities and operations, and populating the shared AnalyzeResult instance
+ * with recognized and unknown entities. See existing analyzers under
+ * `src/analyzer/` for reference implementations.
+ */
 export interface Analyzer {
+  /**
+   * Run the analysis for the current workspace.
+   *
+   * Requirements and expectations:
+   * - Should be cancelable via `cancel()` (e.g., terminate child process, stop timers).
+   * - Must populate the `AnalyzeResult` groups, typically by:
+   *   - Ensuring recognized entities exist in `AnalyzeResultGroup.recognized`
+   *   - Adding operations to the corresponding entity, or to
+   *     `AnalyzeResultGroup.unknown` if the entity cannot be resolved
+   * - Should stream human-readable progress messages via `onMessage` for the
+   *   VS Code progress UI.
+   * - Return `true` on success and `false` on failure. On success, the
+   *   extension will save results and may trigger auto-annotation.
+   *
+   * Typical implementation details:
+   * - Existing analyzers spawn an external script, parse its output, then
+   *   call helper methods like `collectEntities` and `collectOperations`.
+   */
   analyze: (onMessage: (msg: string) => void) => Promise<boolean>;
+
+  /**
+   * Cancel any in-flight analysis work and clean up resources.
+   *
+   * This should make subsequent calls to `analyze()` safe (idempotent cleanup),
+   * and is expected to interrupt long-running operations such as child
+   * processes or filesystem scans.
+   */
   cancel: () => void;
+
+  /**
+   * Return a stable, lowercase name for this analyzer (e.g., "typeorm",
+   * "django").
+   *
+   * This value is used in UI messages ("Analyzing <name> project") and to
+   * form the persisted result file name under `.vscode/` as
+   * `<name>-results.json`.
+   */
   getName: () => string;
 
+  /**
+   * Apply automatic annotations for a supported tag across collected results.
+   *
+   * Guidelines:
+   * - Only annotate with auto tags using the `(a)` suffix (e.g., `tag(a)`).
+   * - Prefer using helpers like `autoAnnotateCdaTran` where appropriate.
+   * - After mutating operations/entities, consider calling
+   *   `updateEntityAnnotation(result)` so entity-level summaries remain in sync.
+   * - For unsupported tags, surface a user-visible error message.
+   */
   autoAnnotate: (tag: string) => void;
+
+  /**
+   * Return the list of tag identifiers that this analyzer knows how to
+   * auto-annotate.
+   *
+   * The extension presents these tags in a Quick Pick for users to select.
+   * Examples include `FULL_SCAN`, `CDA_TRAN`, `NON_EQ`, `NON_TRIVIAL`.
+   */
   supportedAutoAnnotateTags: () => string[];
 
+  /**
+   * Suggest bulk moves of operations from unknown entities into recognized
+   * entities.
+   *
+   * Return value format:
+   * - An array of "steps". Each step is a tuple of:
+   *   - The destination recognized `Entity`
+   *   - A list of candidate operations, each expressed as `[sourceUnknownEntity, operation]`
+   *
+   * How the extension uses this:
+   * - The extension iterates steps and shows a Quick Pick of operations per
+   *   destination entity. Confirmed items are moved via `moveOperations` from
+   *   the `unknown` group to the chosen recognized entity.
+   *
+   * If the analyzer does not provide suggestions, return an empty array.
+   */
   recognizeUnknownAggressively: () => [Entity, [Entity, Operation][]][];
 }
 
