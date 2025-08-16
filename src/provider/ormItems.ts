@@ -49,6 +49,8 @@ function computeCDA(item: ORMItem): number | null {
   return cda.size;
 }
 
+const DRAG_DROP_MIME_TYPE = "application/vnd.code.tree.entity-operation";
+
 export class ORMItemProvider
   implements
   vscode.TreeDataProvider<ORMItem>,
@@ -242,8 +244,8 @@ export class ORMItemProvider
     this._onDidChangeTreeData.fire(null);
   }
 
-  dropMimeTypes = ["application/vnd.code.tree.entity-operation"];
-  dragMimeTypes = ["application/vnd.code.tree.entity-operation"];
+  dropMimeTypes = [DRAG_DROP_MIME_TYPE];
+  dragMimeTypes = [DRAG_DROP_MIME_TYPE];
 
   async handleDrag(
     items: ORMItem[],
@@ -275,10 +277,8 @@ export class ORMItemProvider
         })),
     };
 
-    dataTransfer.set(
-      "application/vnd.code.tree.entity-operation",
-      new vscode.DataTransferItem(JSON.stringify(data))
-    );
+    const transferItem = new vscode.DataTransferItem(JSON.stringify(data));
+    dataTransfer.set(DRAG_DROP_MIME_TYPE, transferItem);
   }
 
   async handleDrop(
@@ -286,13 +286,22 @@ export class ORMItemProvider
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
-    let data = dataTransfer.get("application/vnd.code.tree.entity-operation");
+    let data = '';
+    // Use `forEach` instead of get because the map in `dataTransfer` has more than one value
+    // for the corresponding MIME type for some reason and one of the value is an empty string.
+    // The `forEach` will loop over all values instead of just taking the first one like in
+    // the case of `get`, so we use it here as a workaround.
+    dataTransfer.forEach((item, mimeType) => {
+      if (mimeType === DRAG_DROP_MIME_TYPE && item.value.length > 0) {
+        data = item.value;
+      }
+    });
 
     if (!data || !target) {
       return;
     }
 
-    let parsed = JSON.parse(data.value) as DragAndDropDataType;
+    let parsed = JSON.parse(data) as DragAndDropDataType;
     if (parsed.items.length === 0) {
       return;
     }
