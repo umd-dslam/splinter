@@ -1,6 +1,6 @@
 ## Splinter
 
-Splinter is a VS Code extension that finds and categorizes ORM operations in a codebase, following the taxonomy in the paper [Are Database System Researchers Making Correct Assumptions about Transaction Workloads?](https://dl.acm.org/doi/10.1145/3725268).
+Splinter is a VS Code extension that finds and categorizes ORM operations in a codebase, following the taxonomy in the paper [Are Database System Researchers Making Correct Assumptions about Transaction Workloads?](https://dl.acm.org/doi/10.1145/3725268). The list of repositories analyzed and the corresponding git commit hash is included in the paper.
 
 - **Supported ORMs**:
   - **TypeORM**: analyzer powered by `@ctring/splinter-eslint` (https://github.com/umd-dslam/splinter-eslint)
